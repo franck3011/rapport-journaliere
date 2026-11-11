@@ -13,3 +13,4 @@
 - Consolidation collects only reports with null period_start and period_end; generated summaries always set both — prevents recursive work and photo duplication without changing existing reports.
 - Validate combined-report dates in the shared range helper before formatting or enabling generation — native date inputs can be temporarily empty.
 - Report PDFs fall back to rendering in section chunks merged with pdf-lib (page numbers stamped after merge) — the PDF engine crashes on some long layouts; a Buffer polyfill is loaded before it for browser image handling.
+- Company chat (src/components/chat) is scoped by company_members via RLS and the security-definer company_chat_colleagues() RPC — members can only see colleagues and messages of their own company.
