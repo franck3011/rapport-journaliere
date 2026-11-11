@@ -211,6 +211,7 @@ function AuthenticatedLayout() {
           <Outlet />
         </main>
         <CommandPalette />
+        <CompanyChatWidget />
       </div>
 
     </div>
