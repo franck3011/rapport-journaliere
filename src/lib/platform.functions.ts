@@ -189,20 +189,56 @@ export const removePlatformAdmin = createServerFn({ method: "POST" })
   });
 
 /**
- * Récupération d'urgence : désenrôle tous les facteurs 2FA de l'utilisateur connecté.
- * Utilisé quand un admin a perdu son appareil TOTP mais peut encore prouver son identité
- * via l'email (lien de récupération de mot de passe → session aal1 sur /reset-password).
- * Nécessite une session Supabase valide (aal1 suffit).
+ * Récupération d'urgence 2FA : désenrôle les facteurs TOTP du super admin connecté.
+ *
+ * Sans garde-fou, cette fonction annulait la 2FA : un mot de passe volé suffisait
+ * à ouvrir une session aal1, à supprimer les facteurs, puis à en enrôler un nouveau
+ * pour atteindre aal2. Trois conditions sont désormais exigées :
+ *   1. le compte doit être platform_admin ;
+ *   2. l'authentification doit dater de moins de 15 minutes (amr / iat du JWT) ;
+ *   3. l'appelant doit retaper l'adresse e-mail du compte (confirmation explicite).
+ * Chaque réinitialisation est journalisée dans admin_audit_log.
  */
+const MFA_RESET_MAX_AGE_SECONDS = 15 * 60;
+
+function lastAuthTimestamp(claims: unknown): number {
+  const c = (claims ?? {}) as { amr?: Array<{ timestamp?: number }>; iat?: number };
+  const fromAmr = Number(c.amr?.[0]?.timestamp ?? 0);
+  if (Number.isFinite(fromAmr) && fromAmr > 0) return fromAmr;
+  const fromIat = Number(c.iat ?? 0);
+  return Number.isFinite(fromIat) ? fromIat : 0;
+}
+
 export const emergencyResetMyMfa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) =>
+    z.object({ confirmEmail: z.string().email("Adresse e-mail invalide") }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isPlatformAdmin(context.userId))) {
+      throw new Error("Réinitialisation 2FA réservée aux super admins de la plateforme.");
+    }
+
+    const authAge = Math.floor(Date.now() / 1000) - lastAuthTimestamp(context.claims);
+    if (!Number.isFinite(authAge) || authAge > MFA_RESET_MAX_AGE_SECONDS) {
+      throw new Error(
+        "Session trop ancienne : reconnectez-vous, puis relancez la réinitialisation dans les 15 minutes.",
+      );
+    }
+
+    const accountEmail = String((context.claims as any)?.email ?? "")
+      .trim()
+      .toLowerCase();
+    if (!accountEmail || data.confirmEmail.trim().toLowerCase() !== accountEmail) {
+      throw new Error("L'adresse e-mail saisie ne correspond pas au compte connecté.");
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.auth.admin.mfa.listFactors({
+    const { data: factorsRes, error } = await supabaseAdmin.auth.admin.mfa.listFactors({
       userId: context.userId,
     });
     if (error) throw new Error(error.message);
-    const factors = data?.factors ?? [];
+    const factors = factorsRes?.factors ?? [];
     for (const f of factors) {
       const { error: delErr } = await supabaseAdmin.auth.admin.mfa.deleteFactor({
         userId: context.userId,
@@ -210,15 +246,14 @@ export const emergencyResetMyMfa = createServerFn({ method: "POST" })
       });
       if (delErr) throw new Error(delErr.message);
     }
-    // Journaliser si le compte est platform admin
-    if (await isPlatformAdmin(context.userId)) {
-      await supabaseAdmin.from("admin_audit_log").insert({
-        actor_id: context.userId,
-        action: "mfa.emergency_reset",
-        entity_type: "user",
-        entity_id: context.userId,
-        metadata: { factors_removed: factors.length },
-      });
-    }
+
+    await supabaseAdmin.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      action: "mfa.emergency_reset",
+      entity_type: "user",
+      entity_id: context.userId,
+      metadata: { factors_removed: factors.length },
+    });
+
     return { ok: true, factorsRemoved: factors.length };
   });
