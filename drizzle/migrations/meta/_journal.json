@@ -22,6 +22,13 @@
       "when": 1793965603764,
       "tag": "0002_report_signature",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794399296509,
+      "tag": "0003_company_chat",
+      "breakpoints": true
     }
   ]
 }

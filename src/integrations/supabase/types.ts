@@ -211,6 +211,41 @@ export type Database = {
           },
         ]
       }
+      company_chat_messages: {
+        Row: {
+          body: string
+          company_id: string
+          created_at: string
+          id: string
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          company_id: string
+          created_at?: string
+          id?: string
+          recipient_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_chat_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invitations: {
         Row: {
           company_id: string
@@ -2812,6 +2847,22 @@ export type Database = {
     Functions: {
       assert_not_admin_only: { Args: { _user_id: string }; Returns: undefined }
       assert_not_banned: { Args: { _user_id: string }; Returns: undefined }
+      company_chat_colleagues: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          company_id: string
+          company_name: string
+          email: string
+          full_name: string
+          position_title: string
+          user_id: string
+        }[]
+      }
+      is_company_member: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
