@@ -43,12 +43,15 @@ export type AppModule = {
   core: boolean;
   /** masqué du lanceur /apps (page système accessible ailleurs) */
   hiddenFromLauncher?: boolean;
+  /** Module retiré de la navigation (pages et données conservées). */
+  retired?: boolean;
   screens: ModuleScreen[];
 };
 
 export const APP_MODULES: AppModule[] = [
   {
     code: "ai-center",
+    retired: true,
     name: "Centre IA",
     description: "Équipe d'agents IA pilotée par un Orchestrateur pour produire des rapports contrôlés.",
     icon: Bot,
@@ -95,6 +98,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "expenses",
+    retired: true,
     name: "Notes de frais",
     description:
       "Dépenses professionnelles avec justificatif et validation hiérarchique.",
@@ -126,6 +130,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "minutes",
+    retired: true,
     name: "Procès-verbaux",
     description: "Rédaction, signature et archivage des PV de réunion.",
     icon: FileSignature,
@@ -136,6 +141,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "tasks",
+    retired: true,
     name: "Tâches",
     description: "Tâches assignées, échéances, priorités et suivi d'avancement.",
     icon: ListChecks,
@@ -149,6 +155,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "leaves",
+    retired: true,
     name: "Congés & absences",
     description:
       "Demandes de congés, soldes, justificatifs, validations hiérarchiques et calendrier d'équipe.",
@@ -255,7 +262,7 @@ export function visibleModules(
   disabledCodes: string[] | undefined | null,
 ): AppModule[] {
   const disabled = new Set(disabledCodes ?? []);
-  return APP_MODULES.filter((m) => m.core || !disabled.has(m.code));
+  return APP_MODULES.filter((m) => !m.retired && (m.core || !disabled.has(m.code)));
 }
 
 /** Modules affichés dans le lanceur (hors pages système). */

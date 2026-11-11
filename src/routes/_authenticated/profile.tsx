@@ -141,7 +141,7 @@ function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
-      <Card id="verification">
+      <Card id="verification" className="hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
