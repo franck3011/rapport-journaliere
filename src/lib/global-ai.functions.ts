@@ -2,6 +2,7 @@ import { historyAsContext } from "./ai-history";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAiQuota } from "@/lib/ai-quota";
 import { callAI, DEFAULT_MODEL, type AIMessage } from "./ai-gateway.server";
 
 const input = z.object({
@@ -14,7 +15,7 @@ const input = z.object({
 
 // Assistant transversal : lit (sous RLS de l'utilisateur) projets, documents et notes de frais.
 export const globalAssistant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => input.parse(d))
   .handler(async ({ data, context }): Promise<{ reply: string }> => {
     const sb = context.supabase;
