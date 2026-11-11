@@ -276,12 +276,6 @@ function ReportsListPage() {
                   {a}
                 </Badge>
               ))}
-              <Link
-                to="/reports/audit-roles"
-                className="text-xs text-muted-foreground underline hover:text-foreground"
-              >
-                Audit des rôles
-              </Link>
             </div>
           )}
         </div>
