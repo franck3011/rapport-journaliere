@@ -342,7 +342,22 @@ export const signReport = createServerFn({ method: "POST" })
           signer_role: data.signer_role ?? "",
           signed_at: new Date().toISOString(),
         };
-    const { error } = await context.supabase.from("reports").update(patch as any).eq("id", data.id);
+    // Seul l'auteur peut apposer sa signature. L'écriture passe ensuite par le
+    // client service, car le trigger guard_privileged_columns protège ces colonnes.
+    const { data: owned } = await context.supabase
+      .from("reports")
+      .select("id")
+      .eq("id", data.id)
+      .eq("author_id", context.userId)
+      .maybeSingle();
+    if (!owned) throw new Error("Rapport introuvable ou non autorisé");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("reports")
+      .update(patch as any)
+      .eq("id", data.id)
+      .eq("author_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -455,6 +470,45 @@ async function persistChildren(
   }
 }
 
+/**
+ * Empêche l'injection de chemins Storage arbitraires : une image ou une pièce
+ * jointe doit appartenir au dossier de son auteur (`<uid>/…`) ou déjà être
+ * rattachée au rapport en cours d'édition. Sans ce contrôle, un rapport partagé
+ * permettait de faire signer par le service_role le fichier d'un autre tenant.
+ */
+async function assertStoragePathsAllowed(
+  supabase: any,
+  userId: string,
+  reportId: string | null,
+  paths: string[],
+) {
+  const suspicious = Array.from(
+    new Set(paths.filter((p) => !p.startsWith(`${userId}/`) || p.includes(".."))),
+  );
+  if (suspicious.length === 0) return;
+  if (!reportId) throw new Error("Fichier non autorisé : chemin de stockage invalide.");
+
+  const [{ data: imgs }, { data: atts }] = await Promise.all([
+    supabase
+      .from("report_images")
+      .select("storage_path")
+      .eq("report_id", reportId)
+      .in("storage_path", suspicious),
+    supabase
+      .from("report_attachments")
+      .select("storage_path")
+      .eq("report_id", reportId)
+      .in("storage_path", suspicious),
+  ]);
+  const known = new Set<string>([
+    ...((imgs ?? []) as any[]).map((r) => r.storage_path),
+    ...((atts ?? []) as any[]).map((r) => r.storage_path),
+  ]);
+  if (suspicious.some((p) => !known.has(p))) {
+    throw new Error("Fichier non autorisé : chemin de stockage invalide.");
+  }
+}
+
 export const upsertReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => reportInputSchema.parse(data))
@@ -462,6 +516,10 @@ export const upsertReport = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     let reportId: string;
     const docFields = docFieldsOf(data);
+    await assertStoragePathsAllowed(supabase, userId, data.id ?? null, [
+      ...data.images.map((i) => i.storage_path),
+      ...data.attachments.map((a) => a.storage_path),
+    ]);
     if (data.id) {
       const { data: upd, error } = await supabase
         .from("reports")
@@ -940,9 +998,23 @@ export const getSharedReport = createServerFn({ method: "GET" })
           .order("position", { ascending: true })
       : { data: [] as any[] };
 
-    const paths = (images ?? []).map((i: any) => i.storage_path);
+    // Ne jamais signer un chemin qui n'appartient pas à l'auteur du rapport :
+    // un storage_path injecté ferait lire le fichier d'un autre tenant via le
+    // client service_role (qui contourne les policies du bucket).
+    const authorPrefix = `${report.author_id}/`;
+    const scopedRows = (rows: any[] | null | undefined) =>
+      (rows ?? []).filter(
+        (r) =>
+          typeof r.storage_path === "string" &&
+          r.storage_path.startsWith(authorPrefix) &&
+          !r.storage_path.includes(".."),
+      );
+    const safeImages = scopedRows(images);
+    const safeAttachmentsList = scopedRows(attachments);
+
+    const paths = safeImages.map((i: any) => i.storage_path);
     const urls = await signImages(supabaseAdmin, paths);
-    const attPaths = (attachments ?? []).map((a: any) => a.storage_path);
+    const attPaths = safeAttachmentsList.map((a: any) => a.storage_path);
     const attUrls = await signAttachments(supabaseAdmin, attPaths);
 
     const bulletsBySection: Record<string, any[]> = {};
@@ -951,7 +1023,7 @@ export const getSharedReport = createServerFn({ method: "GET" })
     });
     const imagesBySection: Record<string, LoadedImage[]> = {};
     const generalImages: LoadedImage[] = [];
-    (images ?? []).forEach((img: any) => {
+    safeImages.forEach((img: any) => {
       const li: LoadedImage = {
         id: img.id,
         storage_path: img.storage_path,
@@ -965,7 +1037,7 @@ export const getSharedReport = createServerFn({ method: "GET" })
     });
     const attsBySection: Record<string, LoadedAttachment[]> = {};
     const generalAttachments: LoadedAttachment[] = [];
-    (attachments ?? []).forEach((att: any) => {
+    safeAttachmentsList.forEach((att: any) => {
       const la: LoadedAttachment = {
         id: att.id,
         storage_path: att.storage_path,

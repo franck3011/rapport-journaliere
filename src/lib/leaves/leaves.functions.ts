@@ -451,15 +451,21 @@ export const decideLeaveRequest = createServerFn({ method: "POST" })
     );
     if (!allowed) throw new Error("Vous n'êtes pas habilité à valider cette demande.");
 
-    const { error } = await context.supabase
+    // Écriture via le client service : les colonnes de décision sont protégées
+    // par le trigger guard_privileged_columns (accès direct PostgREST bloqué).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: decided, error } = await supabaseAdmin
       .from("leave_requests")
       .update({
         status: data.decision,
         current_approver_id: null,
         decided_at: new Date().toISOString(),
       })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("status", "submitted")
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!decided || decided.length === 0) throw new Error("Cette demande a déjà été traitée.");
 
     await context.supabase.from("leave_approvals").insert({
       request_id: data.id,

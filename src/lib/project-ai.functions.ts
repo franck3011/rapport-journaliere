@@ -2,6 +2,7 @@ import { historyAsContext } from "./ai-history";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAiQuota } from "@/lib/ai-quota";
 import { callAI, parseJsonLoose, DEFAULT_MODEL, type AIMessage } from "./ai-gateway.server";
 
 const input = z.object({
@@ -17,7 +18,7 @@ export type SuggestedMilestone = { title: string; due_date: string | null; respo
 export type ProjectAIReply = { reply: string; milestones: SuggestedMilestone[] };
 
 export const projectAssistant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => input.parse(d))
   .handler(async ({ data, context }): Promise<ProjectAIReply> => {
     const sb = context.supabase;

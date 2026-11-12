@@ -1,6 +1,7 @@
 import { historyAsContext } from "./ai-history";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAiQuota } from "@/lib/ai-quota";
 import { z } from "zod";
 import {
   callAI,
@@ -31,6 +32,13 @@ export type ExtractedReport = z.infer<typeof extractedSchema>;
 const REPORT_JSON_SHAPE =
   '{"title": string, "intro": string, "conclusion": string, "sections": [{"title": string, "description": string, "bullets": [string]}]}';
 
+/**
+ * Plafond de charge utile base64 (≈ 28 M caractères, soit ~20 Mo de fichier
+ * décodé). Sans borne, un appelant authentifié pouvait envoyer plusieurs
+ * centaines de Mo et saturer la mémoire de l'instance.
+ */
+const MAX_BASE64_CHARS = 28_000_000;
+
 const STYLE_HINTS: Record<string, string> = {
   administratif: "ton administratif, formel, phrases complètes, vocabulaire soutenu",
   technique: "ton technique précis, terminologie métier, mesures et références",
@@ -50,13 +58,13 @@ function styleClause(style?: string): string {
 // ----- Legacy: extract from PDF -----
 
 const pdfInput = z.object({
-  pdfBase64: z.string().min(10),
+  pdfBase64: z.string().min(10).max(MAX_BASE64_CHARS),
   mimeType: z.string().default("application/pdf"),
   filename: z.string().default("document.pdf"),
 });
 
 export const extractReportFromPdf = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((data: unknown) => pdfInput.parse(data))
   .handler(async ({ data }): Promise<ExtractedReport> => {
     const text = await callAI({
@@ -92,12 +100,12 @@ export const extractReportFromPdf = createServerFn({ method: "POST" })
 // ----- Extract from image -----
 
 const imageInput = z.object({
-  base64: z.string().min(10),
+  base64: z.string().min(10).max(MAX_BASE64_CHARS),
   mimeType: z.string().default("image/jpeg"),
 });
 
 export const aiExtractFromImage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => imageInput.parse(d))
   .handler(async ({ data }): Promise<ExtractedReport> => {
     const text = await callAI({
@@ -130,12 +138,12 @@ export const aiExtractFromImage = createServerFn({ method: "POST" })
 // ----- Extract from DOCX -----
 
 const docxInput = z.object({
-  base64: z.string().min(10),
+  base64: z.string().min(10).max(MAX_BASE64_CHARS),
   filename: z.string().default("document.docx"),
 });
 
 export const aiExtractFromDocx = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => docxInput.parse(d))
   .handler(async ({ data }): Promise<ExtractedReport> => {
     const mammoth = await import("mammoth");
@@ -182,7 +190,7 @@ const ACTION_INSTRUCTION: Record<string, string> = {
 };
 
 export const aiImprove = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => improveInput.parse(d))
   .handler(async ({ data }): Promise<{ text: string }> => {
     const text = await callAI({
@@ -238,7 +246,7 @@ function reportToText(r: z.infer<typeof reportShape>): string {
 }
 
 export const aiSummarize = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => summarizeInput.parse(d))
   .handler(async ({ data }): Promise<{ summary: string }> => {
     const instruction =
@@ -275,7 +283,7 @@ const issueSchema = z.object({
 const detectInput = z.object({ report: reportShape });
 
 export const aiDetectIssues = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => detectInput.parse(d))
   .handler(async ({ data }): Promise<z.infer<typeof issueSchema>> => {
     const text = await callAI({
@@ -305,7 +313,7 @@ const applyStyleInput = z.object({
 });
 
 export const aiApplyStyle = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => applyStyleInput.parse(d))
   .handler(async ({ data }): Promise<ExtractedReport> => {
     const text = await callAI({
@@ -396,7 +404,7 @@ function draftForPrompt(d: z.infer<typeof reportShape> | undefined): string {
 }
 
 export const aiChat = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => chatInput.parse(d))
   .handler(async ({ data }): Promise<AIChatReply> => {
     const { applyPatch } = await import("./report-patch");
@@ -446,7 +454,7 @@ const generateInput = z.object({
 });
 
 export const aiGenerateFull = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => generateInput.parse(d))
   .handler(async ({ data }): Promise<ExtractedReport> => {
     const system =
@@ -489,7 +497,7 @@ const multiPdfInput = z.object({
     .array(
       z.object({
         filename: z.string().default("document.pdf"),
-        base64: z.string().min(10),
+        base64: z.string().min(10).max(MAX_BASE64_CHARS),
         mimeType: z.string().default("application/pdf"),
       }),
     )
@@ -563,7 +571,7 @@ async function extractOnePdf(
 }
 
 export const aiExtractFromPdfs = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => multiPdfInput.parse(d))
   .handler(async ({ data }): Promise<MultiPdfResult> => {
     const perFile: MultiPdfFileStatus[] = [];
@@ -653,11 +661,11 @@ export const aiExtractFromPdfs = createServerFn({ method: "POST" })
 const agentFile = z.object({
   filename: z.string(),
   mimeType: z.string(),
-  base64: z.string().min(10),
+  base64: z.string().min(10).max(MAX_BASE64_CHARS),
 });
 
 const agentInput = z.object({
-  instruction: z.string().min(1),
+  instruction: z.string().min(1).max(4000),
   files: z.array(agentFile).max(15).default([]),
   history: z.array(chatMsg).default([]),
   reportDraft: reportShape.optional(),
@@ -692,7 +700,7 @@ export type AgentReply = {
 };
 
 export const aiAgentProcess = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => agentInput.parse(d))
   .handler(async ({ data }): Promise<AgentReply> => {
     const content: any[] = [];

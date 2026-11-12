@@ -39,6 +39,10 @@ function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState<"checking" | "ok" | "invalid">("checking");
+  // Étape 2 : la 2FA n'est plus retirée automatiquement, elle exige une confirmation explicite.
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaEmail, setMfaEmail] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -81,26 +85,17 @@ function ResetPasswordPage() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
-      // Si l'utilisateur a demandé un reset 2FA, on désenrôle ses facteurs
+      // Si l'utilisateur a demandé un reset 2FA, on lui demande une confirmation
+      // explicite (e-mail du compte) avant de retirer les facteurs.
       if (wantsMfaReset) {
-        try {
-          const res = await resetMfaFn();
-          if (res.factorsRemoved > 0) {
-            toast.success(
-              `Mot de passe mis à jour. ${res.factorsRemoved} facteur(s) 2FA retiré(s) — vous pourrez réactiver la 2FA à la prochaine connexion.`,
-            );
-          } else {
-            toast.success("Mot de passe mis à jour. Aucun facteur 2FA à retirer.");
-          }
-        } catch (mfaErr: any) {
-          toast.warning(
-            "Mot de passe mis à jour mais impossible de retirer les facteurs 2FA. Contactez le support.",
-          );
-          console.error(mfaErr);
-        }
-      } else {
-        toast.success("Mot de passe mis à jour.");
+        setMfaStep(true);
+        toast.success(
+          "Mot de passe mis à jour. Confirmez votre adresse e-mail ci-dessous pour retirer la 2FA.",
+        );
+        return;
       }
+
+      toast.success("Mot de passe mis à jour.");
 
       // Redirection selon type de compte
       const { data: userData } = await supabase.auth.getUser();
@@ -130,6 +125,24 @@ function ResetPasswordPage() {
       toast.error(msg);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleMfaReset(e: React.FormEvent) {
+    e.preventDefault();
+    setMfaBusy(true);
+    try {
+      const res = await resetMfaFn({ data: { confirmEmail: mfaEmail } });
+      toast.success(
+        res.factorsRemoved > 0
+          ? `${res.factorsRemoved} facteur(s) 2FA retiré(s). Ré-enrôlez un authentificateur à la prochaine connexion.`
+          : "Aucun facteur 2FA à retirer.",
+      );
+      navigate({ to: "/auth", replace: true });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Réinitialisation de la 2FA impossible.");
+    } finally {
+      setMfaBusy(false);
     }
   }
 
@@ -180,16 +193,16 @@ function ResetPasswordPage() {
               </Alert>
             )}
 
-            {ready === "ok" && (
+            {ready === "ok" && !mfaStep && (
               <>
                 {wantsMfaReset && (
                   <Alert>
                     <ShieldCheck className="h-4 w-4" />
                     <AlertTitle>Réinitialisation d'urgence 2FA</AlertTitle>
                     <AlertDescription>
-                      En validant, votre mot de passe sera changé <strong>et tous vos facteurs 2FA
-                      seront retirés</strong>. Vous devrez ré-enrôler un nouvel authentificateur à
-                      la prochaine connexion admin.
+                      Votre mot de passe sera changé immédiatement. Le retrait des facteurs 2FA
+                      demandera une <strong>confirmation séparée</strong> (saisie de l'adresse
+                      e-mail du compte) à l'étape suivante.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -238,10 +251,43 @@ function ResetPasswordPage() {
 
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {wantsMfaReset ? "Mettre à jour et retirer la 2FA" : "Mettre à jour le mot de passe"}
+                    Mettre à jour le mot de passe
                   </Button>
                 </form>
               </>
+            )}
+
+            {ready === "ok" && mfaStep && (
+              <form onSubmit={handleMfaReset} className="space-y-4">
+                <Alert>
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertTitle>Confirmer le retrait de la 2FA</AlertTitle>
+                  <AlertDescription>
+                    Mot de passe mis à jour. Pour retirer vos facteurs 2FA, saisissez l'adresse
+                    e-mail du compte : elle doit correspondre exactement.
+                  </AlertDescription>
+                </Alert>
+                <div className="space-y-1.5">
+                  <Label htmlFor="mfa-email">Adresse e-mail du compte</Label>
+                  <Input
+                    id="mfa-email"
+                    type="email"
+                    required
+                    value={mfaEmail}
+                    onChange={(e) => setMfaEmail(e.target.value)}
+                    autoComplete="email"
+                    placeholder="vous@exemple.com"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={mfaBusy}>
+                  {mfaBusy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Retirer mes facteurs 2FA
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Réservé aux super admins de la plateforme. La connexion doit dater de moins de
+                  15 minutes.
+                </p>
+              </form>
             )}
 
             <div className="text-center text-sm">

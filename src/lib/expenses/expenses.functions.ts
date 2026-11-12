@@ -163,7 +163,10 @@ export const decideExpense = createServerFn({ method: "POST" })
     );
     if (!allowed) throw new Error("Vous n'êtes pas responsable de cet employé");
 
-    const { error } = await context.supabase
+    // Écriture via le client service : les colonnes de décision sont protégées
+    // par le trigger guard_privileged_columns (accès direct PostgREST bloqué).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: decided, error } = await supabaseAdmin
       .from("expense_reports")
       .update({
         status: data.approve ? "approved" : "rejected",
@@ -171,8 +174,11 @@ export const decideExpense = createServerFn({ method: "POST" })
         decided_at: new Date().toISOString(),
         decided_by: context.userId,
       })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .in("status", ["submitted", "En attente"])
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!decided || decided.length === 0) throw new Error("Cette note de frais a déjà été traitée.");
 
     const { notify } = await import("@/lib/notifications.server");
     await notify([
