@@ -3,6 +3,7 @@ import { BudgetView } from "@/components/budget/BudgetView";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSharedReport, logSharedExport } from "@/lib/reports.functions";
+import { appAssetUrl } from "@/lib/app-url";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,11 +34,11 @@ export const Route = createFileRoute("/share/$token")({
       { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:image",
-        content: "https://rapport-journaliere.lovable.app/og-dailybrief.jpg",
+        content: appAssetUrl("/og-dailybrief.jpg"),
       },
       {
         name: "twitter:image",
-        content: "https://rapport-journaliere.lovable.app/og-dailybrief.jpg",
+        content: appAssetUrl("/og-dailybrief.jpg"),
       },
     ],
   }),

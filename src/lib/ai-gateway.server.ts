@@ -1,9 +1,11 @@
-// Server-only AI helper.
-// Uses the user's GEMINI_API_KEY first (with model fallback chain), then
-// falls back to the Lovable AI Gateway (LOVABLE_API_KEY) if Gemini fails.
-// OpenAI-compatible chat completions endpoint.
+// Server-only AI helper — Google Gemini via son endpoint compatible OpenAI.
+//
+// HISTORIQUE : ce fichier utilisait d'abord le Lovable AI Gateway
+// (ai.gateway.lovable.dev + LOVABLE_API_KEY). Il a été découplé pour permettre
+// un déploiement hors Lovable. Seule variable requise : GEMINI_API_KEY
+// (clé gratuite sur https://aistudio.google.com/apikey).
 
-const BASE = "https://ai.gateway.lovable.dev/v1";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
 
 export const DEFAULT_MODEL = "google/gemini-3.5-flash";
 export const PRO_MODEL = "google/gemini-3.1-pro-preview";
@@ -30,8 +32,6 @@ export type AICallOpts = {
   temperature?: number;
 };
 
-const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
-
 function geminiModel(m?: string): string {
   const name = (m ?? DEFAULT_MODEL).replace(/^google\//, "");
   return name.includes("pro") ? "gemini-3.1-pro-preview" : "gemini-3.5-flash";
@@ -49,7 +49,10 @@ async function callGemini(opts: AICallOpts, key: string): Promise<string> {
   const messages: AIMessage[] = [];
   if (opts.system) messages.push({ role: "system", content: opts.system });
   for (const m of opts.messages) {
-    if (typeof m.content === "string") { messages.push(m); continue; }
+    if (typeof m.content === "string") {
+      messages.push(m);
+      continue;
+    }
     messages.push({
       role: m.role,
       content: m.content.map((c) =>
@@ -59,12 +62,14 @@ async function callGemini(opts: AICallOpts, key: string): Promise<string> {
       ),
     });
   }
+
   const body: Record<string, unknown> = {
     model: geminiModel(opts.model),
     messages,
     temperature: opts.temperature ?? 0.4,
   };
   if (opts.json) body.response_format = { type: "json_object" };
+
   let last = "";
   for (const model of geminiChain(opts.model)) {
     body.model = model;
@@ -73,69 +78,32 @@ async function callGemini(opts: AICallOpts, key: string): Promise<string> {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(90_000),
-    }).catch((e) => { last = String((e as Error).message); return null; });
+    }).catch((e) => {
+      last = String((e as Error).message);
+      return null;
+    });
     if (!res) continue;
     if (res.ok) {
       const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
       return json.choices?.[0]?.message?.content ?? "";
     }
     last = `${res.status} ${(await res.text().catch(() => "")).slice(0, 240)}`;
+    if (res.status === 429) {
+      last = "Limite de requêtes Gemini atteinte. Réessayez dans un instant.";
+    }
     if (![404, 408, 429, 500, 502, 503, 504].includes(res.status)) break;
   }
   throw new Error(`Gemini a échoué (${last})`);
 }
 
 export async function callAI(opts: AICallOpts): Promise<string> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      return await callGemini(opts, geminiKey);
-    } catch (e) {
-      if (!process.env.LOVABLE_API_KEY) throw e;
-      console.error("[ai] Gemini failed, falling back:", (e as Error).message);
-    }
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error(
+      "GEMINI_API_KEY manquant côté serveur. Créez une clé sur https://aistudio.google.com/apikey et ajoutez-la aux variables d'environnement.",
+    );
   }
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("LOVABLE_API_KEY manquant côté serveur");
-
-  const messages: AIMessage[] = [];
-  if (opts.system) messages.push({ role: "system", content: opts.system });
-  messages.push(...opts.messages);
-
-  const body: Record<string, unknown> = {
-    model: opts.model ?? DEFAULT_MODEL,
-    messages,
-    temperature: opts.temperature ?? 0.4,
-  };
-  if (opts.json) {
-    body.response_format = { type: "json_object" };
-  }
-
-  const res = await fetch(`${BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
-      "X-Lovable-AIG-SDK": "custom",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    if (res.status === 429)
-      throw new Error("Limite de requêtes IA atteinte. Réessayez dans un instant.");
-    if (res.status === 402)
-      throw new Error(
-        "Crédits IA épuisés. Ajoutez des crédits dans les paramètres du workspace.",
-      );
-    throw new Error(`IA a échoué (${res.status}) ${txt.slice(0, 240)}`);
-  }
-
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return json.choices?.[0]?.message?.content ?? "";
+  return callGemini(opts, key);
 }
 
 export function parseJsonLoose<T>(text: string): T {
