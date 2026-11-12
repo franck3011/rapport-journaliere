@@ -41,7 +41,7 @@ function geminiChain(m?: string): string[] {
   const first = geminiModel(m);
   const rest = first.includes("pro")
     ? ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
-    : ["gemini-3.5-flash-lite", "gemini-3-flash-preview"];
+    : ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
   return [first, ...rest];
 }
 
