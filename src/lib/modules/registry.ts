@@ -23,6 +23,7 @@ import {
   Gauge,
   Briefcase,
   Bot,
+  Target,
 } from "lucide-react";
 
 export type ModuleScreen = {
@@ -45,6 +46,8 @@ export type AppModule = {
   hiddenFromLauncher?: boolean;
   /** Module retiré de la navigation (pages et données conservées). */
   retired?: boolean;
+  /** Affiché en raccourci permanent dans le menu latéral. */
+  pinned?: boolean;
   screens: ModuleScreen[];
 };
 
@@ -74,6 +77,7 @@ export const APP_MODULES: AppModule[] = [
   {
     code: "actions",
     name: "Actions",
+    pinned: true,
     description:
       "Suivi des décisions issues des rapports : qui fait quoi, pour quand, où en est-on.",
     icon: ListChecks,
@@ -81,6 +85,18 @@ export const APP_MODULES: AppModule[] = [
     entry: "/actions",
     core: false,
     screens: [{ to: "/actions", label: "Actions", icon: ListChecks }],
+  },
+  {
+    code: "objectives",
+    name: "Objectifs",
+    pinned: true,
+    description:
+      "Réalisé vs cible par personne ou pour l'entreprise : rapports, chiffre d'affaires, incidents.",
+    icon: Target,
+    tone: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    entry: "/objectives",
+    core: false,
+    screens: [{ to: "/objectives", label: "Objectifs", icon: Target }],
   },
   {
     code: "projects",

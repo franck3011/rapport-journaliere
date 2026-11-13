@@ -335,11 +335,10 @@ function SidebarInner({
   const moduleScreens = (current?.screens ?? []).filter(
     (s) => s.to !== "/company/applications" || moduleState?.isOwner,
   );
-  // Raccourcis permanents : accessibles depuis n'importe quel module.
-  const pinnedItems: { to: string; label: string; icon: typeof UserCircle2 }[] = [];
-  if (!(moduleState?.disabled ?? []).includes("actions")) {
-    pinnedItems.push({ to: "/actions", label: "Actions", icon: ListChecks });
-  }
+  // Raccourcis permanents : modules marqués `pinned` dans le registre.
+  const pinnedItems: { to: string; label: string; icon: typeof UserCircle2 }[] = mods
+    .filter((m) => m.pinned)
+    .map((m) => ({ to: m.entry, label: m.name, icon: m.icon }));
   const navItems: { to: string; label: string; icon: typeof UserCircle2 }[] =
     adminOnly
       ? [
