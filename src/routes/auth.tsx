@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, FileText, Building2, User, Users, Check, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
@@ -77,6 +78,7 @@ const ACCOUNT_KINDS: {
 function AuthPage() {
   const navigate = useNavigate();
   const { redirect } = useSearch({ from: "/auth" });
+  const nextPath = redirect ? oauthReturnPath(redirect) : "/reports";
   const createCompanyFn = useServerFn(createCompany);
   const joinCompanyFn = useServerFn(joinCompanyDirect);
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
@@ -110,9 +112,9 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: redirect ?? "/reports", replace: true });
+      if (data.session) navigate({ href: nextPath, replace: true });
     });
-  }, [navigate, redirect]);
+  }, [navigate, nextPath]);
 
 
   async function handleSubmit(e: React.FormEvent) {
@@ -133,7 +135,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: new URL(nextPath, window.location.origin).href,
             data: { full_name: fullName },
           },
         });
@@ -160,7 +162,7 @@ function AuthPage() {
             return;
           }
           toast.success("Compte créé, vous êtes connecté.");
-          navigate({ to: redirect ?? "/reports", replace: true });
+          navigate({ href: nextPath, replace: true });
         } else {
           toast.success("Compte créé. Vous pouvez vous connecter.");
           setMode("signin");
@@ -169,7 +171,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Connecté");
-        navigate({ to: redirect ?? "/reports", replace: true });
+        navigate({ href: nextPath, replace: true });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
@@ -242,7 +244,7 @@ function AuthPage() {
                       const { data, error } = await supabase.auth.signInWithOAuth({
                         provider: "google",
                         options: {
-                          redirectTo: window.location.origin,
+                          redirectTo: new URL(nextPath, window.location.origin).href,
                         }
                       });
                       if (error) {
