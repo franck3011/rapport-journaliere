@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
+// Transcription audio — Google Gemini (generateContent avec audio inline).
+// Découplé de Lovable : seule GEMINI_API_KEY est nécessaire.
+
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024; // 10 MB
+// gemini-2.5-flash n'est plus ouvert aux nouveaux comptes (404) ; on essaie la
+// chaîne suivante dans l'ordre jusqu'à obtenir une transcription.
+const TRANSCRIBE_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
 
 const jsonError = (status: number, error: string) =>
   new Response(JSON.stringify({ error }), {
@@ -42,9 +48,9 @@ export const Route = createFileRoute("/api/public/ai/transcribe")({
           return jsonError(401, "Session invalide ou expirée");
         }
 
-        const apiKey = process.env.LOVABLE_API_KEY;
+        const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-          return jsonError(500, "Configuration IA manquante");
+          return jsonError(500, "Configuration IA manquante (GEMINI_API_KEY)");
         }
 
         const form = await request.formData();
@@ -56,41 +62,59 @@ export const Route = createFileRoute("/api/public/ai/transcribe")({
           return jsonError(413, "Fichier audio trop volumineux (max 10 Mo)");
         }
 
-        const upstream = new FormData();
-        upstream.append("model", "openai/gpt-4o-mini-transcribe");
-        upstream.append("file", file, file.name || "recording.wav");
-        upstream.append("language", "fr");
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const base64 = buffer.toString("base64");
 
-        const res = await fetch(
-          "https://ai.gateway.lovable.dev/v1/audio/transcriptions",
-          {
-            method: "POST",
-            headers: { "Lovable-API-Key": apiKey },
-            body: upstream,
-          },
-        );
-
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          return new Response(
-            JSON.stringify({
-              error:
-                res.status === 402
-                  ? "Crédits IA épuisés. Ajoutez des crédits pour continuer."
-                  : res.status === 429
-                    ? "Limite de requêtes IA atteinte. Réessayez dans un instant."
-                    : `Transcription impossible (${res.status})`,
-              detail: text.slice(0, 300),
-            }),
+        let text = "";
+        let lastError = "";
+        for (const model of TRANSCRIBE_MODELS) {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
             {
-              status: res.status,
-              headers: { "content-type": "application/json" },
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: "Transcris fidèlement cet enregistrement audio en français. Réponds uniquement par la transcription, sans commentaire.",
+                      },
+                      {
+                        inline_data: {
+                          mime_type: file.type || "audio/wav",
+                          data: base64,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              }),
             },
           );
+
+          if (!res.ok) {
+            lastError = `HTTP ${res.status}`;
+            if (res.status === 429) {
+              return jsonError(429, "Limite de requêtes IA atteinte. Réessayez dans un instant.");
+            }
+            continue;
+          }
+
+          const json = (await res.json()) as any;
+          const parts = json?.candidates?.[0]?.content?.parts ?? [];
+          text = parts
+            .map((p: any) => (typeof p?.text === "string" ? p.text : ""))
+            .join("")
+            .trim();
+          if (text) break;
         }
 
-        const json = (await res.json()) as any;
-        return new Response(JSON.stringify({ text: json?.text ?? "" }), {
+        if (!text) {
+          return jsonError(502, `Transcription impossible (${lastError || "réponse vide"})`);
+        }
+
+        return new Response(JSON.stringify({ text }), {
           headers: { "content-type": "application/json" },
         });
       },

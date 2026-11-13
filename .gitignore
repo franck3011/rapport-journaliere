@@ -20,6 +20,14 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Vercel
+.vercel
+
+# Fichiers d'environnement (ne jamais committer de secrets)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

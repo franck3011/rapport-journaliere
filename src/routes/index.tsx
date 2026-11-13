@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { appAssetUrl } from "@/lib/app-url";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -30,8 +31,8 @@ export const Route = createFileRoute("/")({
           "Créez, partagez et suivez les rapports quotidiens et PV de votre équipe. Assistant IA, KYC, partage sécurisé.",
       },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:image", content: "https://rapport-journaliere.lovable.app/og-dailybrief.jpg" },
-      { name: "twitter:image", content: "https://rapport-journaliere.lovable.app/og-dailybrief.jpg" },
+      { property: "og:image", content: appAssetUrl("/og-dailybrief.jpg") },
+      { name: "twitter:image", content: appAssetUrl("/og-dailybrief.jpg") },
     ],
   }),
   component: LandingPage,

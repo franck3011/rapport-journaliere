@@ -54,10 +54,11 @@ export function oauthAvailability() {
 export function canonicalOrigin(origin: string): string {
   const declared = process.env["MAIL_OAUTH_ORIGIN"]?.replace(/\/+$/, "");
   if (declared) return declared;
-  const current = origin.replace(/\/+$/, "");
-  return /^https:\/\/[^/]*\.lovable\.app$/.test(current) && !current.includes("id-preview--")
-    ? current
-    : "https://rapport-journaliere.lovable.app";
+  // Hors Lovable : l'origine publique vient de l'environnement (APP_URL/VITE_APP_URL),
+  // sinon on retombe sur l'origine de la requête.
+  const fromEnv = (process.env["APP_URL"] ?? process.env["VITE_APP_URL"] ?? "").replace(/\/+$/, "");
+  if (fromEnv) return fromEnv;
+  return origin.replace(/\/+$/, "");
 }
 
 export function redirectUri(origin: string): string {

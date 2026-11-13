@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronRight } from "lucide-react";
+import { appAssetUrl } from "@/lib/app-url";
 import { PublicNav, PublicFooter } from "./index";
 
 export const Route = createFileRoute("/pricing")({
@@ -20,8 +21,8 @@ export const Route = createFileRoute("/pricing")({
         content: "Formules DailyBrief pour PME et grandes équipes. Facturation flexible.",
       },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:image", content: "https://rapport-journaliere.lovable.app/og-dailybrief.jpg" },
-      { name: "twitter:image", content: "https://rapport-journaliere.lovable.app/og-dailybrief.jpg" },
+      { property: "og:image", content: appAssetUrl("/og-dailybrief.jpg") },
+      { name: "twitter:image", content: appAssetUrl("/og-dailybrief.jpg") },
     ],
   }),
   component: PricingPage,
