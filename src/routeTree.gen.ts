@@ -61,6 +61,7 @@ import { Route as AuthenticatedTasksNewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCompanyEmployeesIdRouteImport } from './routes/_authenticated/company.employees.$id'
 import { Route as AuthenticatedReportsIdIndexRouteImport } from './routes/_authenticated/reports.$id.index'
 import { Route as AuthenticatedReportsIdEditRouteImport } from './routes/_authenticated/reports.$id.edit'
+import { Route as ApiPublicActionsRemindersRouteImport } from './routes/api/public/actions/reminders'
 import { Route as ApiPublicAiSpeakRouteImport } from './routes/api/public/ai/speak'
 import { Route as ApiPublicAiTranscribeRouteImport } from './routes/api/public/ai/transcribe'
 import { Route as ApiPublicMailDispatchScheduledRouteImport } from './routes/api/public/mail/dispatch-scheduled'
@@ -350,6 +351,12 @@ const AuthenticatedReportsIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthenticatedReportsIdRoute,
   } as any)
+const ApiPublicActionsRemindersRoute =
+  ApiPublicActionsRemindersRouteImport.update({
+    id: '/api/public/actions/reminders',
+    path: '/api/public/actions/reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAiSpeakRoute = ApiPublicAiSpeakRouteImport.update({
   id: '/api/public/ai/speak',
   path: '/api/public/ai/speak',
@@ -424,6 +431,7 @@ export interface FileRoutesByFullPath {
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/company/employees/$id': typeof AuthenticatedCompanyEmployeesIdRoute
   '/reports/$id/edit': typeof AuthenticatedReportsIdEditRoute
+  '/api/public/actions/reminders': typeof ApiPublicActionsRemindersRoute
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
   '/api/public/ai/transcribe': typeof ApiPublicAiTranscribeRoute
   '/api/public/mail/dispatch-scheduled': typeof ApiPublicMailDispatchScheduledRoute
@@ -479,6 +487,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/company/employees/$id': typeof AuthenticatedCompanyEmployeesIdRoute
   '/reports/$id/edit': typeof AuthenticatedReportsIdEditRoute
+  '/api/public/actions/reminders': typeof ApiPublicActionsRemindersRoute
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
   '/api/public/ai/transcribe': typeof ApiPublicAiTranscribeRoute
   '/api/public/mail/dispatch-scheduled': typeof ApiPublicMailDispatchScheduledRoute
@@ -538,6 +547,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/company/employees/$id': typeof AuthenticatedCompanyEmployeesIdRoute
   '/_authenticated/reports/$id/edit': typeof AuthenticatedReportsIdEditRoute
+  '/api/public/actions/reminders': typeof ApiPublicActionsRemindersRoute
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
   '/api/public/ai/transcribe': typeof ApiPublicAiTranscribeRoute
   '/api/public/mail/dispatch-scheduled': typeof ApiPublicMailDispatchScheduledRoute
@@ -597,6 +607,7 @@ export interface FileRouteTypes {
     | '/tasks/'
     | '/company/employees/$id'
     | '/reports/$id/edit'
+    | '/api/public/actions/reminders'
     | '/api/public/ai/speak'
     | '/api/public/ai/transcribe'
     | '/api/public/mail/dispatch-scheduled'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/company/employees/$id'
     | '/reports/$id/edit'
+    | '/api/public/actions/reminders'
     | '/api/public/ai/speak'
     | '/api/public/ai/transcribe'
     | '/api/public/mail/dispatch-scheduled'
@@ -710,6 +722,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks/'
     | '/_authenticated/company/employees/$id'
     | '/_authenticated/reports/$id/edit'
+    | '/api/public/actions/reminders'
     | '/api/public/ai/speak'
     | '/api/public/ai/transcribe'
     | '/api/public/mail/dispatch-scheduled'
@@ -727,6 +740,7 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   ShareTokenRoute: typeof ShareTokenRoute
+  ApiPublicActionsRemindersRoute: typeof ApiPublicActionsRemindersRoute
   ApiPublicAiSpeakRoute: typeof ApiPublicAiSpeakRoute
   ApiPublicAiTranscribeRoute: typeof ApiPublicAiTranscribeRoute
   ApiPublicMailDispatchScheduledRoute: typeof ApiPublicMailDispatchScheduledRoute
@@ -1099,6 +1113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsIdEditRouteImport
       parentRoute: typeof AuthenticatedReportsIdRoute
     }
+    '/api/public/actions/reminders': {
+      id: '/api/public/actions/reminders'
+      path: '/api/public/actions/reminders'
+      fullPath: '/api/public/actions/reminders'
+      preLoaderRoute: typeof ApiPublicActionsRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ai/speak': {
       id: '/api/public/ai/speak'
       path: '/api/public/ai/speak'
@@ -1256,6 +1277,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   ShareTokenRoute: ShareTokenRoute,
+  ApiPublicActionsRemindersRoute: ApiPublicActionsRemindersRoute,
   ApiPublicAiSpeakRoute: ApiPublicAiSpeakRoute,
   ApiPublicAiTranscribeRoute: ApiPublicAiTranscribeRoute,
   ApiPublicMailDispatchScheduledRoute: ApiPublicMailDispatchScheduledRoute,

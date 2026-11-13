@@ -11,7 +11,10 @@ export type NotificationType =
   | "expense_submitted"
   | "expense_approved"
   | "expense_rejected"
-  | "document_shared";
+  | "document_shared"
+  | "action_assigned"
+  | "action_reminder"
+  | "action_overdue";
 
 export type NotificationDraft = {
   user_id: string;

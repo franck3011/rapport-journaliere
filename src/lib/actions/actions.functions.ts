@@ -244,7 +244,7 @@ export const createAction = createServerFn({ method: "POST" })
       await notify([
         {
           user_id: data.ownerId,
-          type: "task_assigned",
+          type: "action_assigned",
           title: "Une action vous a été assignée",
           body: data.title,
           actor_id: userId,
