@@ -1,13 +1,16 @@
 /**
  * URL publique de l'application.
  *
- * Plus aucune dépendance à un domaine Lovable : tout passe par une variable
- * d'environnement, ce qui permet de déployer sur n'importe quel hébergeur
- * (Vercel, Cloudflare, Netlify…) ou avec un domaine personnalisé.
+ * Ordre de résolution :
+ *   1. `VITE_APP_URL` (inlinée par Vite au build) ou `APP_URL` (lue à l'exécution) ;
+ *   2. l'origine du navigateur (côté client) ;
+ *   3. le domaine de production (côté serveur, si la variable manque).
  *
- * - Côté client : `VITE_APP_URL` (inlinée par Vite au build).
- * - Côté serveur : `APP_URL` (lue à l'exécution), avec repli sur `VITE_APP_URL`.
+ * Les replis évitent qu'une variable d'environnement oubliée casse les
+ * métadonnées Open Graph ou les redirections OAuth.
  */
+const PRODUCTION_URL = "https://rapport-journaliere.vercel.app";
+
 export function appUrl(): string {
   let fromVite = "";
   try {
@@ -22,7 +25,13 @@ export function appUrl(): string {
   }
 
   const raw = (fromNode || fromVite).trim();
-  return (raw || "http://localhost:8080").replace(/\/+$/, "");
+  if (raw) return raw.replace(/\/+$/, "");
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin.replace(/\/+$/, "");
+  }
+
+  return PRODUCTION_URL;
 }
 
 /** URL absolue d'un asset public (ex. image Open Graph). */
