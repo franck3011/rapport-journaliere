@@ -36,6 +36,16 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
+/** Écart avec la période précédente, exprimé simplement. */
+function comparisonHint(current: number, previous: number): string {
+  if (previous === 0) {
+    return current > 0 ? "aucun le mois dernier" : "aucun le mois dernier non plus";
+  }
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return `stable vs mois dernier (${previous})`;
+  return `${pct > 0 ? "+" : ""}${pct} % vs mois dernier (${previous})`;
+}
+
 function Tile({
   label,
   value,
@@ -43,8 +53,7 @@ function Tile({
   icon: Icon,
   to,
   tone = "text-primary",
-}: {
-  label: string;
+}: {  label: string;
   value: string | number;
   hint?: string;
   icon: typeof FileText;
@@ -109,9 +118,17 @@ function DashboardPage() {
             <Tile
               label="Rapports ce mois"
               value={data?.reportsThisMonth ?? 0}
-              hint="Vos rapports du mois en cours"
+              hint={comparisonHint(data?.reportsThisMonth ?? 0, data?.reportsPrevMonth ?? 0)}
               icon={FileText}
               to="/reports"
+            />
+            <Tile
+              label="Mes actions ouvertes"
+              value={data?.actionsOpen ?? 0}
+              hint={`${data?.actionsLate ?? 0} en retard`}
+              icon={ListChecks}
+              tone="text-emerald-500"
+              to="/actions"
             />
             <Tile
               label="En attente de ma validation"

@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type DashboardSummary = {
   companyName: string | null;
   reportsThisMonth: number;
+  reportsPrevMonth: number;
   reportsToApprove: number;
   tasksOpen: number;
   tasksOverdue: number;
@@ -13,6 +14,8 @@ export type DashboardSummary = {
   expensesApprovedAmount: number;
   documentsCount: number;
   unreadNotifications: number;
+  actionsOpen: number;
+  actionsLate: number;
 };
 
 const count = async (q: any): Promise<number> => {
@@ -30,6 +33,13 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       .toISOString()
       .slice(0, 10);
     const todayIso = today.toISOString().slice(0, 10);
+    // Mois précédent, calculé en UTC pour éviter tout décalage de fuseau.
+    const prevMonthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1))
+      .toISOString()
+      .slice(0, 10);
+    const prevMonthEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0))
+      .toISOString()
+      .slice(0, 10);
 
     const { data: mem } = await sb
       .from("company_members")
@@ -58,6 +68,9 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       expensesPending,
       documentsCount,
       unreadNotifications,
+      reportsPrevMonth,
+      actionsOpen,
+      actionsLate,
     ] = await Promise.all([
       count(
         sb
@@ -116,6 +129,29 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
           .eq("user_id", uid)
           .is("read_at", null),
       ),
+      count(
+        sb
+          .from("reports")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", uid)
+          .gte("report_date", prevMonthStart)
+          .lte("report_date", prevMonthEnd),
+      ),
+      count(
+        (sb as any)
+          .from("report_actions")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", uid)
+          .in("status", ["todo", "doing"]),
+      ),
+      count(
+        (sb as any)
+          .from("report_actions")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", uid)
+          .in("status", ["todo", "doing"])
+          .lt("due_date", todayIso),
+      ),
     ]);
 
     const { data: approved } = await sb
@@ -132,6 +168,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     return {
       companyName,
       reportsThisMonth,
+      reportsPrevMonth,
       reportsToApprove,
       tasksOpen,
       tasksOverdue,
@@ -141,5 +178,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       expensesApprovedAmount,
       documentsCount,
       unreadNotifications,
+      actionsOpen,
+      actionsLate,
     };
   });
