@@ -57,4 +57,42 @@ export const REPORT_TEMPLATES: ReportTemplate[] = [
       { title: "Mesures correctives requises" },
     ],
   },
+  {
+    id: "ecole",
+    label: "École / Formation",
+    description: "Effectif, programme, évaluations, discipline, matériel",
+    title: "Rapport de classe",
+    sections: [
+      { title: "Effectif & présences" },
+      { title: "Programme traité" },
+      { title: "Exercices & évaluations" },
+      { title: "Discipline & incidents" },
+      { title: "Matériel & besoins" },
+    ],
+  },
+  {
+    id: "sante",
+    label: "Santé / Clinique",
+    description: "Consultations, actes, stocks, urgences",
+    title: "Rapport de service",
+    sections: [
+      { title: "Consultations du jour" },
+      { title: "Actes réalisés" },
+      { title: "Stocks & ruptures" },
+      { title: "Urgences & incidents" },
+      { title: "Recommandations" },
+    ],
+  },
+  {
+    id: "administration",
+    label: "Administration / Bureau",
+    description: "Dossiers, courriers, échéances, blocages",
+    title: "Rapport administratif",
+    sections: [
+      { title: "Dossiers traités" },
+      { title: "Courriers & demandes" },
+      { title: "Échéances à venir" },
+      { title: "Blocages & arbitrages nécessaires" },
+    ],
+  },
 ];

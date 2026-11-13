@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ListChecks, Plus, Pencil, Trash2, AlertTriangle, CalendarClock, CalendarDays } from "lucide-react";
+import { ListChecks, Plus, Pencil, Trash2, AlertTriangle, CalendarClock, CalendarDays, Download } from "lucide-react";
 import {
   deleteAction,
   listActions,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/actions/actions.functions";
 import { ActionDialog } from "@/components/actions/ActionDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadCsv, fileStamp } from "@/lib/export-csv";
 
 export const Route = createFileRoute("/_authenticated/actions")({
   head: () => ({
@@ -171,10 +172,33 @@ function ActionsPage() {
             Les décisions issues de vos rapports, suivies jusqu'à leur clôture.
           </p>
         </div>
-        <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle action
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              downloadCsv(
+                `actions-${fileStamp()}.csv`,
+                ["Action", "Responsable", "Statut", "Priorité", "Échéance", "Rapport"],
+                rows.map((r) => [
+                  r.title,
+                  r.owner_name,
+                  STATUS_LABELS[r.status],
+                  PRIORITY_LABELS[r.priority],
+                  r.due_date ?? "",
+                  r.report_title ?? "",
+                ]),
+              )
+            }
+            disabled={rows.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exporter
+          </Button>
+          <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle action
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

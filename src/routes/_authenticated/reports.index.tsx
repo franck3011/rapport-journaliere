@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Layers,
   Loader2,
+  FileDown,
 
   
 } from "lucide-react";
@@ -57,6 +58,7 @@ import { getRoleAudit } from "@/lib/role-audit.functions";
 import { levelLabel } from "@/lib/reports.types";
 import { cn } from "@/lib/utils";
 import { MonthlyReportButton } from "@/components/MonthlyReportButton";
+import { downloadCsv, fileStamp } from "@/lib/export-csv";
 import { CombineMonthsButton } from "@/components/CombineMonthsButton";
 import { CombineDaysButton } from "@/components/CombineDaysButton";
 import { parseISO, format } from "date-fns";
@@ -293,6 +295,27 @@ function ReportsListPage() {
           <MonthlyReportButton monthKey={currentMonthKey} variant="outline" />
           <CombineMonthsButton />
           <CombineDaysButton />
+          <Button
+            variant="outline"
+            disabled={filtered.length === 0}
+            onClick={() =>
+              downloadCsv(
+                `rapports-${fileStamp()}.csv`,
+                ["Date", "Titre", "Auteur", "Statut", "Type", "Numéro"],
+                filtered.map((r: any) => [
+                  r.report_date,
+                  r.title,
+                  r.author_name,
+                  r.status ?? "",
+                  r.doc_type ?? "report",
+                  r.doc_number ?? "",
+                ]),
+              )
+            }
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Exporter
+          </Button>
           <Button asChild>
             <Link to="/reports/new" search={{}}>
               <Plus className="h-4 w-4 mr-2" />

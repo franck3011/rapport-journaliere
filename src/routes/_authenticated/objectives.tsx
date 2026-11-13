@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Target, Plus, Trash2, Loader2, TrendingUp } from "lucide-react";
+import { Target, Plus, Trash2, Loader2, TrendingUp, Download } from "lucide-react";
 import {
   createObjective,
   deleteObjective,
@@ -32,6 +32,7 @@ import {
   type ObjectiveRow,
 } from "@/lib/objectives/objectives.functions";
 import { listActionMembers } from "@/lib/actions/actions.functions";
+import { downloadCsv, fileStamp } from "@/lib/export-csv";
 
 export const Route = createFileRoute("/_authenticated/objectives")({
   head: () => ({
@@ -177,10 +178,34 @@ function ObjectivesPage() {
             Le réalisé face à la cible, par personne ou pour toute l'entreprise.
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvel objectif
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={rows.length === 0}
+            onClick={() =>
+              downloadCsv(
+                `objectifs-${fileStamp()}.csv`,
+                ["Objectif", "Pour", "Réalisé", "Cible", "Unité", "Période début", "Période fin"],
+                rows.map((o) => [
+                  o.title,
+                  o.owner_name,
+                  o.actual_value,
+                  o.target_value,
+                  o.unit,
+                  o.period_start,
+                  o.period_end,
+                ]),
+              )
+            }
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exporter
+          </Button>
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvel objectif
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
