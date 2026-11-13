@@ -21,6 +21,7 @@ import {
   ChevronsRight,
   LayoutGrid,
   Search,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -334,6 +335,11 @@ function SidebarInner({
   const moduleScreens = (current?.screens ?? []).filter(
     (s) => s.to !== "/company/applications" || moduleState?.isOwner,
   );
+  // Raccourcis permanents : accessibles depuis n'importe quel module.
+  const pinnedItems: { to: string; label: string; icon: typeof UserCircle2 }[] = [];
+  if (!(moduleState?.disabled ?? []).includes("actions")) {
+    pinnedItems.push({ to: "/actions", label: "Actions", icon: ListChecks });
+  }
   const navItems: { to: string; label: string; icon: typeof UserCircle2 }[] =
     adminOnly
       ? [
@@ -342,11 +348,12 @@ function SidebarInner({
         ]
       : [
           { ...LAUNCHER_ITEM },
+          ...pinnedItems,
           ...moduleScreens,
           ...(isAdmin
             ? [{ to: "/admin", label: "Admin plateforme", icon: ShieldAlert }]
             : []),
-        ];
+        ].filter((item, idx, arr) => arr.findIndex((o) => o.to === item.to) === idx);
 
   return (
     <>
