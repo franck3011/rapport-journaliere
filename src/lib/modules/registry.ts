@@ -72,6 +72,17 @@ export const APP_MODULES: AppModule[] = [
     screens: [{ to: "/dashboard", label: "Tableau de bord", icon: Gauge }],
   },
   {
+    code: "actions",
+    name: "Actions",
+    description:
+      "Suivi des décisions issues des rapports : qui fait quoi, pour quand, où en est-on.",
+    icon: ListChecks,
+    tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    entry: "/actions",
+    core: false,
+    screens: [{ to: "/actions", label: "Actions", icon: ListChecks }],
+  },
+  {
     code: "projects",
     name: "Projets",
     description:

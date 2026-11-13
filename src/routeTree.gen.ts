@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedActionsRouteImport } from './routes/_authenticated/actions'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAppsRouteImport } from './routes/_authenticated/apps'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
@@ -88,6 +89,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedActionsRoute = AuthenticatedActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
@@ -372,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/actions': typeof AuthenticatedActionsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/apps': typeof AuthenticatedAppsRoute
   '/company': typeof AuthenticatedCompanyRouteWithChildren
@@ -428,6 +435,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/actions': typeof AuthenticatedActionsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/apps': typeof AuthenticatedAppsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -484,6 +492,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/actions': typeof AuthenticatedActionsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/apps': typeof AuthenticatedAppsRoute
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
@@ -542,6 +551,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pricing'
     | '/reset-password'
+    | '/actions'
     | '/admin'
     | '/apps'
     | '/company'
@@ -598,6 +608,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pricing'
     | '/reset-password'
+    | '/actions'
     | '/admin'
     | '/apps'
     | '/dashboard'
@@ -653,6 +664,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/pricing'
     | '/reset-password'
+    | '/_authenticated/actions'
     | '/_authenticated/admin'
     | '/_authenticated/apps'
     | '/_authenticated/company'
@@ -757,6 +769,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/actions': {
+      id: '/_authenticated/actions'
+      path: '/actions'
+      fullPath: '/actions'
+      preLoaderRoute: typeof AuthenticatedActionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -1145,6 +1164,7 @@ const AuthenticatedReportsIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedActionsRoute: typeof AuthenticatedActionsRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRouteWithChildren
@@ -1184,6 +1204,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedActionsRoute: AuthenticatedActionsRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAppsRoute: AuthenticatedAppsRoute,
   AuthenticatedCompanyRoute: AuthenticatedCompanyRouteWithChildren,

@@ -37,6 +37,7 @@ import { formatLongDate } from "@/lib/date-utils";
 import { Lightbox } from "@/components/Lightbox";
 import { AttachmentsView } from "@/components/AttachmentUploader";
 import { ReportNotes } from "@/components/ReportNotes";
+import { ReportActionsCard } from "@/components/reports/ReportActionsCard";
 import { ReportSignaturePanel } from "@/components/reports/ReportSignaturePanel";
 import { SendReportButtons } from "@/components/reports/SendReportButtons";
 import { ReportWorkflowCard, ReportStatusBadge } from "@/components/ReportWorkflowCard";
@@ -551,6 +552,8 @@ function ReportDetailPage() {
         defaultName={r.author_name}
         canSign={canEdit}
       />
+
+      <ReportActionsCard reportId={r.id} canEdit={canEdit} />
 
       <ReportNotes
         reportId={r.id}
