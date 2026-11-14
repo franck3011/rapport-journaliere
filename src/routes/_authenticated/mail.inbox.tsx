@@ -4,13 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   Archive,
   ArrowLeft,
@@ -19,7 +14,6 @@ import {
   Forward,
   Inbox,
   Loader2,
-  Mail,
   MailOpen,
   Paperclip,
   Pen,
@@ -69,6 +63,41 @@ export const Route = createFileRoute("/_authenticated/mail/inbox")({
   }),
   component: UnifiedInbox,
 });
+
+/** Heure si c'est aujourd'hui, date courte sinon. */
+function messageTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.toDateString() === now.toDateString()
+    ? d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+}
+
+function ToolButton({
+  label,
+  onClick,
+  children,
+  danger,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+}) {
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      className="h-9 w-9 rounded-lg"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+    >
+      <span className={danger ? "text-destructive" : undefined}>{children}</span>
+    </Button>
+  );
+}
 
 function UnifiedInbox() {
   const qc = useQueryClient();
@@ -174,39 +203,48 @@ function UnifiedInbox() {
 
   if (accounts.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-3 p-6 text-sm">
-          <p className="font-medium">Aucun compte e-mail connecté.</p>
-          <p className="text-muted-foreground">
-            Ajoutez un compte dans les paramètres de la messagerie pour afficher votre boîte
-            unifiée.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="mx-auto max-w-lg px-6 py-20 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+          <Inbox className="h-7 w-7 text-muted-foreground" />
+        </div>
+        <h2 className="mt-5 text-lg font-semibold">Aucun compte e-mail connecté</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          Ajoutez un compte Gmail ou Outlook dans les paramètres de la messagerie pour retrouver
+          tous vos messages ici.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-semibold">
-          <Inbox className="h-5 w-5 text-primary" /> Boîte unifiée
+      {/* En-tête */}
+      <div className="flex flex-wrap items-center gap-3 border-b pb-4">
+        <h1 className="flex items-center gap-2 text-lg font-semibold">
+          <Inbox className="h-5 w-5 text-primary" />
+          Boîte unifiée
         </h1>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="flex gap-2">
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && setApplied(search.trim())}
-              placeholder="Rechercher (objet, expéditeur, contenu)"
-              className="sm:w-72"
+              onBlur={() => setApplied(search.trim())}
+              placeholder="Rechercher un objet, un expéditeur…"
+              className="h-9 w-64 rounded-lg pl-9"
               aria-label="Rechercher dans les e-mails"
             />
-            <Button variant="outline" onClick={() => setApplied(search.trim())} aria-label="Lancer la recherche">
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
-          <Button variant="outline" onClick={() => sync.mutate()} disabled={sync.isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-lg"
+            onClick={() => sync.mutate()}
+            disabled={sync.isPending}
+          >
             {sync.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -215,12 +253,15 @@ function UnifiedInbox() {
             Relever
           </Button>
           <Button
+            size="sm"
+            className="h-9 rounded-lg"
             onClick={() => {
               setSeed(undefined);
               setComposeOpen(true);
             }}
           >
-            <Pen className="mr-2 h-4 w-4" /> Rédiger
+            <Pen className="mr-2 h-4 w-4" />
+            Rédiger
           </Button>
         </div>
       </div>
@@ -232,18 +273,18 @@ function UnifiedInbox() {
         </Alert>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[200px_180px_minmax(0,1fr)] xl:grid-cols-[220px_320px_minmax(0,1fr)]">
-        {/* Colonne 1 : comptes */}
-        <Card className="h-fit">
-          <CardContent className="space-y-1 p-2">
-            <p className="px-2 pt-1 text-xs font-medium uppercase text-muted-foreground">
+      <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:min-h-[540px] lg:grid-cols-[220px_360px_minmax(0,1fr)]">
+        {/* Colonne 1 : comptes et dossiers */}
+        <aside className="min-h-0 space-y-5 overflow-y-auto rounded-xl border bg-card p-3 lg:pr-2">
+          <div className="space-y-0.5">
+            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Comptes
             </p>
             <button
               type="button"
               onClick={() => setAccountId(null)}
-              className={`w-full rounded-md px-2 py-2 text-left text-sm ${
-                accountId === null ? "bg-primary/10 text-primary" : "hover:bg-muted"
+              className={`w-full rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                accountId === null ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted"
               }`}
             >
               Tous les comptes
@@ -253,18 +294,22 @@ function UnifiedInbox() {
                 key={a.id}
                 type="button"
                 onClick={() => setAccountId(a.id)}
-                className={`w-full rounded-md px-2 py-2 text-left text-sm ${
+                className={`w-full rounded-lg px-2.5 py-2 text-left transition ${
                   accountId === a.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
                 }`}
               >
-                <span className="block truncate">{a.email}</span>
-                <span className="block truncate text-xs text-muted-foreground">
+                <span className="block truncate text-sm">{a.email}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
                   {PROVIDER_LABELS[a.provider]}
                 </span>
               </button>
             ))}
-            <Separator className="my-2" />
-            <p className="px-2 text-xs font-medium uppercase text-muted-foreground">Dossiers</p>
+          </div>
+
+          <div className="space-y-0.5 border-t pt-4">
+            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Dossiers
+            </p>
             {FOLDER_ORDER.map((f) => (
               <button
                 key={f}
@@ -273,242 +318,279 @@ function UnifiedInbox() {
                   setFolder(f);
                   setSelected(null);
                 }}
-                className={`w-full rounded-md px-2 py-1.5 text-left text-sm ${
+                className={`w-full rounded-lg px-2.5 py-2 text-left text-sm transition ${
                   folder === f ? "bg-muted font-medium" : "hover:bg-muted"
                 }`}
               >
                 {FOLDER_LABELS[f]}
               </button>
             ))}
-            <Separator className="my-2" />
-            <div className="space-y-2 px-2 pb-2 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={unreadOnly}
-                  onChange={(e) => setUnreadOnly(e.target.checked)}
-                />
-                Non lus seulement
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={withAttachments}
-                  onChange={(e) => setWithAttachments(e.target.checked)}
-                />
-                Avec pièce jointe
-              </label>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Colonne 2 : liste */}
-        <Card className="min-w-0">
-          <CardContent className="p-0">
-            <ScrollArea className="h-[70vh]">
-              {(isLoading || isFetching) && (
-                <p className="p-4 text-sm text-muted-foreground">Chargement des messages…</p>
-              )}
-              {!isLoading && messages.length === 0 && (
-                <p className="p-4 text-sm text-muted-foreground">
-                  Aucun message dans « {FOLDER_LABELS[folder]} ».
-                </p>
-              )}
-              {messages.map((m) => (
-                <button
-                  key={`${m.accountId}-${m.id}`}
-                  type="button"
-                  onClick={() => setSelected({ accountId: m.accountId, messageId: m.id })}
-                  className={`w-full border-b p-3 text-left transition hover:bg-muted ${
-                    selected?.messageId === m.id ? "bg-muted" : ""
+          <div className="space-y-2.5 border-t pt-4 text-sm">
+            <label className="flex cursor-pointer items-center gap-2 px-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded"
+                checked={unreadOnly}
+                onChange={(e) => setUnreadOnly(e.target.checked)}
+              />
+              Non lus
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 px-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded"
+                checked={withAttachments}
+                onChange={(e) => setWithAttachments(e.target.checked)}
+              />
+              Avec pièce jointe
+            </label>
+          </div>
+        </aside>
+
+        {/* Colonne 2 : liste des messages */}
+        <section className="min-h-0 overflow-y-auto rounded-xl border bg-card">
+          {(isLoading || isFetching) && messages.length === 0 && (
+            <p className="px-5 py-8 text-sm text-muted-foreground">Chargement des messages…</p>
+          )}
+          {!isLoading && messages.length === 0 && (
+            <div className="px-6 py-16 text-center">
+              <p className="text-sm font-medium">Aucun message</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Rien dans « {FOLDER_LABELS[folder]}
+                {applied ? ` » pour « ${applied} »` : " »"}.
+              </p>
+            </div>
+          )}
+          {messages.map((m) => {
+            const active = selected?.messageId === m.id;
+            return (
+              <button
+                key={`${m.accountId}-${m.id}`}
+                type="button"
+                onClick={() => setSelected({ accountId: m.accountId, messageId: m.id })}
+                className={`block w-full border-b px-4 py-3.5 text-left transition last:border-b-0 ${
+                  active ? "bg-primary/5" : "hover:bg-muted/60"
+                }`}
+              >
+                <div className="flex items-baseline gap-2">
+                  {m.unread && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                  <span
+                    className={`truncate text-sm ${m.unread ? "font-semibold" : "font-normal"}`}
+                  >
+                    {addressLabel(m.from)}
+                  </span>
+                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                    {messageTime(m.date)}
+                  </span>
+                </div>
+
+                <p
+                  className={`mt-1 truncate text-sm ${
+                    m.unread ? "font-medium text-foreground" : "text-foreground/80"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`truncate text-sm ${m.unread ? "font-semibold" : ""}`}>
-                      {addressLabel(m.from)}
-                    </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {new Date(m.date).toLocaleDateString("fr-FR")}
-                    </span>
-                  </div>
-                  <p className={`truncate text-sm ${m.unread ? "font-medium" : ""}`}>{m.subject}</p>
-                  <p className="truncate text-xs text-muted-foreground">{m.snippet}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                    {accountId === null && (
-                      <Badge variant="outline" className="text-[10px]">
-                        {m.accountEmail}
-                      </Badge>
-                    )}
-                    {m.starred && <Star className="h-3 w-3 text-amber-500" />}
-                    {m.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
-                    {m.unread && <Badge className="text-[10px]">Non lu</Badge>}
-                  </div>
-                </button>
-              ))}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                  {m.subject || "(sans objet)"}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                  {m.snippet}
+                </p>
+
+                <div className="mt-2 flex items-center gap-2 text-muted-foreground">
+                  {m.hasAttachments && <Paperclip className="h-3.5 w-3.5" aria-label="Pièce jointe" />}
+                  {m.starred && <Star className="h-3.5 w-3.5 text-amber-500" aria-label="Favori" />}
+                  {accountId === null && (
+                    <span className="truncate text-[10px]">{m.accountEmail}</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </section>
 
         {/* Colonne 3 : lecture */}
-        <Card className="min-w-0">
-          <CardContent className="p-0">
-            <ScrollArea className="h-[70vh]">
-              {!selected && (
-                <div className="p-6 text-sm text-muted-foreground">
-                  Sélectionnez un message pour l'afficher.
-                </div>
-              )}
-              {selected && loadingMessage && (
-                <div className="p-6 text-sm text-muted-foreground">Ouverture du message…</div>
-              )}
-              {selected && message && (
-                <div className="space-y-4 p-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="lg:hidden"
-                    onClick={() => setSelected(null)}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Retour
-                  </Button>
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-semibold">{message.subject}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      De {addressLabel(message.from)} · {new Date(message.date).toLocaleString("fr-FR")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
+        <section className="min-h-0 overflow-y-auto rounded-xl border bg-card">
+          {!selected && (
+            <div className="flex h-full flex-col items-center justify-center px-6 py-20 text-center">
+              <MailOpen className="h-8 w-8 text-muted-foreground" />
+              <p className="mt-3 text-sm text-muted-foreground">
+                Sélectionnez un message pour le lire.
+              </p>
+            </div>
+          )}
+          {selected && loadingMessage && (
+            <p className="px-6 py-8 text-sm text-muted-foreground">Ouverture du message…</p>
+          )}
+          {selected && message && (
+            <div className="flex h-full flex-col">
+              {/* En-tête du message */}
+              <div className="border-b px-6 py-5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mb-3 -ml-2 lg:hidden"
+                  onClick={() => setSelected(null)}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+                </Button>
+
+                <h2 className="text-xl font-semibold leading-snug">
+                  {message.subject || "(sans objet)"}
+                </h2>
+
+                <div className="mt-3 flex items-start gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{addressLabel(message.from)}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
                       À {message.to.map(addressLabel).join(", ") || "—"}
-                      {message.cc.length ? ` · Cc ${message.cc.map(addressLabel).join(", ")}` : ""}
+                      {message.cc.length
+                        ? ` · Cc ${message.cc.map(addressLabel).join(", ")}`
+                        : ""}
                     </p>
-                    <Badge variant="outline">{message.accountEmail}</Badge>
                   </div>
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    {new Date(message.date).toLocaleString("fr-FR")}
+                  </span>
+                </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSeed({
-                          accountId: message.accountId,
-                          to: message.from?.address ?? "",
-                          subject: `Re : ${message.subject}`,
-                          body: `\n\n---\n${message.text ?? ""}`,
-                          replyTo: message.id,
-                        });
-                        setComposeOpen(true);
-                      }}
-                    >
-                      <CornerUpLeft className="mr-2 h-4 w-4" /> Répondre
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSeed({
-                          accountId: message.accountId,
-                          subject: `Tr : ${message.subject}`,
-                          body: `\n\n---\n${message.text ?? ""}`,
-                          forwardOf: message.id,
-                        });
-                        setComposeOpen(true);
-                      }}
-                    >
-                      <Forward className="mr-2 h-4 w-4" /> Transférer
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        flag.mutate({
-                          accountId: message.accountId,
-                          messageId: message.id,
-                          read: false,
-                        })
-                      }
-                    >
-                      <MailOpen className="mr-2 h-4 w-4" /> Marquer non lu
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        flag.mutate({
-                          accountId: message.accountId,
-                          messageId: message.id,
-                          starred: !message.starred,
-                        })
-                      }
-                    >
-                      <Star className="mr-2 h-4 w-4" />
-                      {message.starred ? "Retirer des favoris" : "Favori"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        move.mutate({
-                          accountId: message.accountId,
-                          messageId: message.id,
-                          folder: "archive",
-                        })
-                      }
-                    >
-                      <Archive className="mr-2 h-4 w-4" /> Archiver
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        remove.mutate({ accountId: message.accountId, messageId: message.id })
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4 text-destructive" /> Supprimer
-                    </Button>
-                  </div>
+                <div className="mt-4 flex items-center gap-1">
+                  <ToolButton
+                    label="Répondre"
+                    onClick={() => {
+                      setSeed({
+                        accountId: message.accountId,
+                        to: message.from?.address ?? "",
+                        subject: `Re : ${message.subject}`,
+                        body: `\n\n---\n${message.text ?? ""}`,
+                        replyTo: message.id,
+                      });
+                      setComposeOpen(true);
+                    }}
+                  >
+                    <CornerUpLeft className="h-4 w-4" />
+                  </ToolButton>
+                  <ToolButton
+                    label="Transférer"
+                    onClick={() => {
+                      setSeed({
+                        accountId: message.accountId,
+                        subject: `Tr : ${message.subject}`,
+                        body: `\n\n---\n${message.text ?? ""}`,
+                        forwardOf: message.id,
+                      });
+                      setComposeOpen(true);
+                    }}
+                  >
+                    <Forward className="h-4 w-4" />
+                  </ToolButton>
+                  <ToolButton
+                    label={message.starred ? "Retirer des favoris" : "Marquer comme favori"}
+                    onClick={() =>
+                      flag.mutate({
+                        accountId: message.accountId,
+                        messageId: message.id,
+                        starred: !message.starred,
+                      })
+                    }
+                  >
+                    <Star
+                      className={`h-4 w-4 ${message.starred ? "fill-amber-500 text-amber-500" : ""}`}
+                    />
+                  </ToolButton>
+                  <ToolButton
+                    label="Marquer comme non lu"
+                    onClick={() =>
+                      flag.mutate({
+                        accountId: message.accountId,
+                        messageId: message.id,
+                        read: false,
+                      })
+                    }
+                  >
+                    <MailOpen className="h-4 w-4" />
+                  </ToolButton>
+                  <ToolButton
+                    label="Archiver"
+                    onClick={() =>
+                      move.mutate({
+                        accountId: message.accountId,
+                        messageId: message.id,
+                        folder: "archive",
+                      })
+                    }
+                  >
+                    <Archive className="h-4 w-4" />
+                  </ToolButton>
+                  <ToolButton
+                    label="Supprimer"
+                    danger
+                    onClick={() =>
+                      remove.mutate({ accountId: message.accountId, messageId: message.id })
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </ToolButton>
 
+                  <span className="ml-auto truncate text-[11px] text-muted-foreground">
+                    {message.accountEmail}
+                  </span>
+                </div>
+              </div>
+
+              {/* Corps du message */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="mx-auto max-w-[72ch] px-6 py-6">
                   {message.attachments.length > 0 && (
-                    <div className="space-y-1">
-                      <Label className="text-xs uppercase text-muted-foreground">
-                        Pièces jointes
-                      </Label>
-                      {message.attachments.map((att) => (
-                        <div
-                          key={att.id}
-                          className="flex items-center justify-between rounded border px-2 py-1 text-sm"
-                        >
-                          <span className="truncate">
-                            {att.filename}{" "}
-                            <span className="text-muted-foreground">({formatBytes(att.size)})</span>
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={`Télécharger ${att.filename}`}
-                            onClick={() => void download(att.id, att.filename)}
+                    <div className="mb-6 rounded-xl border bg-muted/30 p-4">
+                      <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {message.attachments.length} pièce
+                        {message.attachments.length > 1 ? "s" : ""} jointe
+                        {message.attachments.length > 1 ? "s" : ""}
+                      </p>
+                      <div className="space-y-2">
+                        {message.attachments.map((att) => (
+                          <div
+                            key={att.id}
+                            className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2"
                           >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                            <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate text-sm">{att.filename}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {formatBytes(att.size)}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0"
+                              aria-label={`Télécharger ${att.filename}`}
+                              onClick={() => void download(att.id, att.filename)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  <Separator />
                   {message.html ? (
                     <iframe
                       title="Contenu du message"
                       sandbox=""
-                      className="h-[45vh] w-full rounded border bg-background"
+                      className="h-[60vh] min-h-[380px] w-full rounded-lg border bg-white"
                       srcDoc={message.html}
                     />
                   ) : (
-                    <pre className="whitespace-pre-wrap text-sm">{message.text ?? "(vide)"}</pre>
+                    <pre className="whitespace-pre-wrap break-words font-sans text-[15px] leading-7 text-foreground/90">
+                      {message.text ?? "(message vide)"}
+                    </pre>
                   )}
                 </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
       <ComposeMailDialog
@@ -517,9 +599,10 @@ function UnifiedInbox() {
         accounts={accounts}
         seed={seed}
       />
-      <p className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Mail className="h-3 w-3" /> Les contenus d'e-mails ne sont jamais stockés : ils sont
-        lus en direct depuis vos serveurs de messagerie.
+
+      <p className="text-xs text-muted-foreground">
+        Les contenus d'e-mails ne sont jamais stockés : ils sont lus en direct depuis votre
+        messagerie.
       </p>
     </div>
   );
