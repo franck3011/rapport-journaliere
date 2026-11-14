@@ -25,6 +25,7 @@ import {
   Paperclip,
   Pen,
   RefreshCw,
+  Reply,
   Search,
   Star,
   Trash2,
@@ -53,13 +54,13 @@ import { ComposeMailDialog, type ComposeSeed } from "@/components/mail/ComposeMa
 export const Route = createFileRoute("/_authenticated/mail/inbox")({
   head: () => ({
     meta: [
-      { title: "Boîte unifiée — DailyBrief" },
+      { title: "Messagerie — DailyBrief" },
       {
         name: "description",
         content:
           "Lisez, répondez, classez et recherchez tous vos e-mails multi-comptes depuis une boîte unifiée.",
       },
-      { property: "og:title", content: "Boîte unifiée — DailyBrief" },
+      { property: "og:title", content: "Messagerie — DailyBrief" },
       {
         property: "og:description",
         content: "Une seule boîte pour Gmail, Outlook, Yahoo et vos comptes professionnels.",
@@ -96,7 +97,7 @@ function ToolButton({
       type="button"
       size="icon"
       variant="ghost"
-      className="h-9 w-9 rounded-lg"
+      className="h-8 w-8 rounded-md"
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -224,44 +225,45 @@ function UnifiedInbox() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* En-tête */}
-      <div className="flex flex-wrap items-center gap-3 border-b pb-4">
+    <div className="space-y-3">
+      {/* Barre supérieure */}
+      <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex items-center gap-2 text-lg font-semibold">
           <Inbox className="h-5 w-5 text-primary" />
-          Boîte unifiée
+          Messagerie
         </h1>
 
-        <div className="ml-auto flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <div className="relative w-full sm:w-64">
+        <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
+          <div className="relative w-full sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && setApplied(search.trim())}
               onBlur={() => setApplied(search.trim())}
-              placeholder="Rechercher un objet, un expéditeur…"
-              className="h-9 w-full rounded-lg pl-9"
+              placeholder="Rechercher…"
+              className="h-9 w-full rounded-md pl-9"
               aria-label="Rechercher dans les e-mails"
             />
           </div>
           <Button
             variant="outline"
-            size="sm"
-            className="h-9 rounded-lg"
+            size="icon"
+            className="h-9 w-9 shrink-0"
             onClick={() => sync.mutate()}
             disabled={sync.isPending}
+            aria-label="Relever le courrier"
+            title="Relever le courrier"
           >
             {sync.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCw className="h-4 w-4" />
             )}
-            Relever
           </Button>
           <Button
             size="sm"
-            className="h-9 rounded-lg"
+            className="h-9 shrink-0"
             onClick={() => {
               setSeed(undefined);
               setComposeOpen(true);
@@ -280,41 +282,73 @@ function UnifiedInbox() {
         </Alert>
       )}
 
-      <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:min-h-[540px] lg:grid-cols-[220px_360px_minmax(0,1fr)]">
-        {/* Colonne 1 : comptes et dossiers */}
-        <aside className="hidden min-h-0 space-y-5 overflow-y-auto rounded-xl border bg-card p-3 lg:block lg:pr-2">
-          <div className="space-y-0.5">
-            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Comptes
-            </p>
-            <button
-              type="button"
-              onClick={() => setAccountId(null)}
-              className={`w-full rounded-lg px-2.5 py-2 text-left text-sm transition ${
-                accountId === null ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted"
-              }`}
-            >
-              Tous les comptes
-            </button>
-            {accounts.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => setAccountId(a.id)}
-                className={`w-full rounded-lg px-2.5 py-2 text-left transition ${
-                  accountId === a.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                }`}
-              >
-                <span className="block truncate text-sm">{a.email}</span>
-                <span className="block truncate text-[11px] text-muted-foreground">
-                  {PROVIDER_LABELS[a.provider]}
-                </span>
-              </button>
+      {/* Filtres mobiles (le rail est masqué en dessous de lg) */}
+      <div className="flex flex-wrap items-center gap-2 lg:hidden">
+        <Select
+          value={folder}
+          onValueChange={(v) => {
+            setFolder(v as MailFolderKind);
+            setSelected(null);
+          }}
+        >
+          <SelectTrigger className="h-9 w-[140px] rounded-md">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FOLDER_ORDER.map((f) => (
+              <SelectItem key={f} value={f}>
+                {FOLDER_LABELS[f]}
+              </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={accountId ?? "all"}
+          onValueChange={(v) => setAccountId(v === "all" ? null : v)}
+        >
+          <SelectTrigger className="h-9 min-w-0 flex-1 rounded-md">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les comptes</SelectItem>
+            {accounts.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          size="sm"
+          variant={unreadOnly ? "default" : "outline"}
+          className="h-9 rounded-md"
+          onClick={() => setUnreadOnly((v) => !v)}
+        >
+          Non lus
+        </Button>
+      </div>
+
+      {/* Coque façon client de messagerie */}
+      <div className="flex min-h-[560px] overflow-hidden rounded-lg border bg-background lg:h-[calc(100dvh-11rem)]">
+        {/* Rail : comptes et dossiers */}
+        <aside className="hidden w-[232px] shrink-0 flex-col border-r bg-muted/20 lg:flex">
+          <div className="p-3">
+            <Button
+              className="w-full justify-start"
+              onClick={() => {
+                setSeed(undefined);
+                setComposeOpen(true);
+              }}
+            >
+              <Pen className="mr-2 h-4 w-4" />
+              Nouveau message
+            </Button>
           </div>
 
-          <div className="space-y-0.5 border-t pt-4">
-            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <nav className="flex-1 overflow-y-auto px-2 pb-3">
+            <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Dossiers
             </p>
             {FOLDER_ORDER.map((f) => (
@@ -325,17 +359,47 @@ function UnifiedInbox() {
                   setFolder(f);
                   setSelected(null);
                 }}
-                className={`w-full rounded-lg px-2.5 py-2 text-left text-sm transition ${
-                  folder === f ? "bg-muted font-medium" : "hover:bg-muted"
+                className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition ${
+                  folder === f
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "hover:bg-muted"
                 }`}
               >
                 {FOLDER_LABELS[f]}
               </button>
             ))}
-          </div>
 
-          <div className="space-y-2.5 border-t pt-4 text-sm">
-            <label className="flex cursor-pointer items-center gap-2 px-2">
+            <p className="px-2 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Comptes
+            </p>
+            <button
+              type="button"
+              onClick={() => setAccountId(null)}
+              className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition ${
+                accountId === null ? "bg-muted font-medium" : "hover:bg-muted"
+              }`}
+            >
+              Tous les comptes
+            </button>
+            {accounts.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAccountId(a.id)}
+                className={`flex w-full flex-col rounded-md px-2 py-1.5 text-left transition ${
+                  accountId === a.id ? "bg-muted" : "hover:bg-muted"
+                }`}
+              >
+                <span className="truncate text-sm">{a.email}</span>
+                <span className="truncate text-[11px] text-muted-foreground">
+                  {PROVIDER_LABELS[a.provider]}
+                </span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="space-y-2 border-t p-3 text-sm">
+            <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded"
@@ -344,7 +408,7 @@ function UnifiedInbox() {
               />
               Non lus
             </label>
-            <label className="flex cursor-pointer items-center gap-2 px-2">
+            <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded"
@@ -356,168 +420,147 @@ function UnifiedInbox() {
           </div>
         </aside>
 
-        {/* Barre mobile : dossiers, comptes et filtre (le rail est masqué en dessous de lg) */}
-        <div className="flex flex-wrap items-center gap-2 lg:hidden">
-          <Select
-            value={folder}
-            onValueChange={(v) => {
-              setFolder(v as MailFolderKind);
-              setSelected(null);
-            }}
-          >
-            <SelectTrigger className="h-9 w-[140px] rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FOLDER_ORDER.map((f) => (
-                <SelectItem key={f} value={f}>
-                  {FOLDER_LABELS[f]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={accountId ?? "all"}
-            onValueChange={(v) => setAccountId(v === "all" ? null : v)}
-          >
-            <SelectTrigger className="h-9 min-w-0 flex-1 rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les comptes</SelectItem>
-              {accounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            size="sm"
-            variant={unreadOnly ? "default" : "outline"}
-            className="h-9 rounded-lg"
-            onClick={() => setUnreadOnly((v) => !v)}
-          >
-            Non lus
-          </Button>
-        </div>
-
-        {/* Colonne 2 : liste des messages */}
+        {/* Liste */}
         <section
-          className={`min-h-0 overflow-y-auto rounded-xl border bg-card ${
-            selected ? "hidden lg:block" : "block"
-          }`}
+          className={`flex min-w-0 flex-col border-r ${
+            selected ? "hidden lg:flex" : "flex"
+          } lg:w-[380px] lg:shrink-0`}
         >
-          {(isLoading || isFetching) && messages.length === 0 && (
-            <p className="px-5 py-8 text-sm text-muted-foreground">Chargement des messages…</p>
-          )}
-          {!isLoading && messages.length === 0 && (
-            <div className="px-6 py-16 text-center">
-              <p className="text-sm font-medium">Aucun message</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Rien dans « {FOLDER_LABELS[folder]}
-                {applied ? ` » pour « ${applied} »` : " »"}.
-              </p>
-            </div>
-          )}
-          {messages.map((m) => {
-            const active = selected?.messageId === m.id;
-            return (
-              <button
-                key={`${m.accountId}-${m.id}`}
-                type="button"
-                onClick={() => setSelected({ accountId: m.accountId, messageId: m.id })}
-                className={`block w-full border-b px-4 py-3.5 text-left transition last:border-b-0 ${
-                  active ? "bg-primary/5" : "hover:bg-muted/60"
-                }`}
-              >
-                <div className="flex items-baseline gap-2">
-                  {m.unread && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
-                  <span
-                    className={`truncate text-sm ${m.unread ? "font-semibold" : "font-normal"}`}
-                  >
-                    {addressLabel(m.from)}
-                  </span>
-                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
-                    {messageTime(m.date)}
-                  </span>
-                </div>
+          <header className="flex items-center gap-2 border-b px-4 py-2.5">
+            <h2 className="text-sm font-semibold">{FOLDER_LABELS[folder]}</h2>
+            <span className="text-xs text-muted-foreground">{messages.length}</span>
+            {(isFetching || isLoading) && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            )}
+          </header>
 
-                <p
-                  className={`mt-1 truncate text-sm ${
-                    m.unread ? "font-medium text-foreground" : "text-foreground/80"
+          <div className="flex-1 overflow-y-auto">
+            {!isLoading && messages.length === 0 && (
+              <div className="px-6 py-16 text-center">
+                <p className="text-sm font-medium">Aucun message</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Rien dans « {FOLDER_LABELS[folder]}
+                  {applied ? ` » pour « ${applied} »` : " »"}.
+                </p>
+              </div>
+            )}
+
+            {messages.map((m) => {
+              const active = selected?.messageId === m.id;
+              return (
+                <button
+                  key={`${m.accountId}-${m.id}`}
+                  type="button"
+                  onClick={() => setSelected({ accountId: m.accountId, messageId: m.id })}
+                  className={`block w-full border-b px-4 py-3 text-left transition ${
+                    active
+                      ? "bg-primary/5"
+                      : m.unread
+                        ? "bg-background hover:bg-muted/50"
+                        : "bg-muted/10 hover:bg-muted/40"
                   }`}
                 >
-                  {m.subject || "(sans objet)"}
-                </p>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {m.snippet}
-                </p>
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className={`truncate text-sm ${
+                        m.unread ? "font-semibold" : "text-foreground/80"
+                      }`}
+                    >
+                      {addressLabel(m.from)}
+                    </span>
+                    <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                      {messageTime(m.date)}
+                    </span>
+                  </div>
 
-                <div className="mt-2 flex items-center gap-2 text-muted-foreground">
-                  {m.hasAttachments && <Paperclip className="h-3.5 w-3.5" aria-label="Pièce jointe" />}
-                  {m.starred && <Star className="h-3.5 w-3.5 text-amber-500" aria-label="Favori" />}
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    {m.starred && (
+                      <Star className="h-3 w-3 shrink-0 fill-amber-500 text-amber-500" />
+                    )}
+                    <p
+                      className={`truncate text-sm ${
+                        m.unread ? "font-medium" : "text-foreground/80"
+                      }`}
+                    >
+                      {m.subject || "(sans objet)"}
+                    </p>
+                    {m.hasAttachments && (
+                      <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    )}
+                  </div>
+
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{m.snippet}</p>
+
                   {accountId === null && (
-                    <span className="truncate text-[10px]">{m.accountEmail}</span>
+                    <p className="mt-1 truncate text-[10px] text-muted-foreground">
+                      {m.accountEmail}
+                    </p>
                   )}
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </section>
 
-        {/* Colonne 3 : lecture */}
+        {/* Lecture */}
         <section
-          className={`rounded-xl border bg-card lg:min-h-0 lg:overflow-y-auto ${
-            selected ? "block" : "hidden lg:block"
+          className={`min-w-0 flex-1 flex-col ${
+            selected ? "flex" : "hidden lg:flex"
           }`}
         >
           {!selected && (
-            <div className="flex h-full flex-col items-center justify-center px-6 py-20 text-center">
-              <MailOpen className="h-8 w-8 text-muted-foreground" />
+            <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+              <MailOpen className="h-9 w-9 text-muted-foreground" />
               <p className="mt-3 text-sm text-muted-foreground">
                 Sélectionnez un message pour le lire.
               </p>
             </div>
           )}
+
           {selected && loadingMessage && (
             <p className="px-6 py-8 text-sm text-muted-foreground">Ouverture du message…</p>
           )}
+
           {selected && message && (
-            <div className="flex min-h-[70vh] flex-col lg:h-full">
+            <>
               {/* En-tête du message */}
-              <div className="border-b px-6 py-5">
+              <div className="border-b px-6 py-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mb-3 -ml-2 lg:hidden"
+                  className="mb-2 -ml-2 lg:hidden"
                   onClick={() => setSelected(null)}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" /> Retour
                 </Button>
 
-                <h2 className="text-xl font-semibold leading-snug">
-                  {message.subject || "(sans objet)"}
-                </h2>
+                <div className="flex items-start gap-3">
+                  <h2 className="min-w-0 flex-1 text-lg font-semibold leading-snug">
+                    {message.subject || "(sans objet)"}
+                  </h2>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {new Date(message.date).toLocaleString("fr-FR")}
+                  </span>
+                </div>
 
-                <div className="mt-3 flex items-start gap-4">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{addressLabel(message.from)}</p>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                <div className="mt-2 flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">
+                      <span className="font-medium">{addressLabel(message.from)}</span>
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       À {message.to.map(addressLabel).join(", ") || "—"}
                       {message.cc.length
                         ? ` · Cc ${message.cc.map(addressLabel).join(", ")}`
                         : ""}
                     </p>
                   </div>
-                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                    {new Date(message.date).toLocaleString("fr-FR")}
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {message.accountEmail}
                   </span>
                 </div>
 
-                <div className="mt-4 flex items-center gap-1">
+                <div className="mt-3 flex items-center gap-1">
                   <ToolButton
                     label="Répondre"
                     onClick={() => {
@@ -531,7 +574,7 @@ function UnifiedInbox() {
                       setComposeOpen(true);
                     }}
                   >
-                    <CornerUpLeft className="h-4 w-4" />
+                    <Reply className="h-4 w-4" />
                   </ToolButton>
                   <ToolButton
                     label="Transférer"
@@ -547,6 +590,9 @@ function UnifiedInbox() {
                   >
                     <Forward className="h-4 w-4" />
                   </ToolButton>
+
+                  <span className="mx-1 h-5 w-px bg-border" />
+
                   <ToolButton
                     label={message.starred ? "Retirer des favoris" : "Marquer comme favori"}
                     onClick={() =>
@@ -594,19 +640,15 @@ function UnifiedInbox() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </ToolButton>
-
-                  <span className="ml-auto truncate text-[11px] text-muted-foreground">
-                    {message.accountEmail}
-                  </span>
                 </div>
               </div>
 
               {/* Corps du message */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-background">
                 <div className="mx-auto max-w-[72ch] px-6 py-6">
                   {message.attachments.length > 0 && (
-                    <div className="mb-6 rounded-xl border bg-muted/30 p-4">
-                      <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="mb-6 rounded-lg border bg-muted/20 p-3">
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         {message.attachments.length} pièce
                         {message.attachments.length > 1 ? "s" : ""} jointe
                         {message.attachments.length > 1 ? "s" : ""}
@@ -615,7 +657,7 @@ function UnifiedInbox() {
                         {message.attachments.map((att) => (
                           <div
                             key={att.id}
-                            className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2"
+                            className="flex items-center gap-3 rounded-md border bg-background px-3 py-2"
                           >
                             <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
                             <span className="min-w-0 flex-1 truncate text-sm">{att.filename}</span>
@@ -641,7 +683,7 @@ function UnifiedInbox() {
                     <iframe
                       title="Contenu du message"
                       sandbox=""
-                      className="h-[60vh] min-h-[380px] w-full rounded-lg border bg-white"
+                      className="h-[55vh] min-h-[340px] w-full rounded-md border bg-white"
                       srcDoc={message.html}
                     />
                   ) : (
@@ -651,7 +693,7 @@ function UnifiedInbox() {
                   )}
                 </div>
               </div>
-            </div>
+            </>
           )}
         </section>
       </div>
@@ -662,11 +704,6 @@ function UnifiedInbox() {
         accounts={accounts}
         seed={seed}
       />
-
-      <p className="text-xs text-muted-foreground">
-        Les contenus d'e-mails ne sont jamais stockés : ils sont lus en direct depuis votre
-        messagerie.
-      </p>
     </div>
   );
 }
