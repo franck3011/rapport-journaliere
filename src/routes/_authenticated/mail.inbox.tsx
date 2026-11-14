@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Archive,
   ArrowLeft,
   CornerUpLeft,
@@ -225,8 +232,8 @@ function UnifiedInbox() {
           Boîte unifiée
         </h1>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="relative">
+        <div className="ml-auto flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -234,7 +241,7 @@ function UnifiedInbox() {
               onKeyDown={(e) => e.key === "Enter" && setApplied(search.trim())}
               onBlur={() => setApplied(search.trim())}
               placeholder="Rechercher un objet, un expéditeur…"
-              className="h-9 w-64 rounded-lg pl-9"
+              className="h-9 w-full rounded-lg pl-9"
               aria-label="Rechercher dans les e-mails"
             />
           </div>
@@ -275,7 +282,7 @@ function UnifiedInbox() {
 
       <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:min-h-[540px] lg:grid-cols-[220px_360px_minmax(0,1fr)]">
         {/* Colonne 1 : comptes et dossiers */}
-        <aside className="min-h-0 space-y-5 overflow-y-auto rounded-xl border bg-card p-3 lg:pr-2">
+        <aside className="hidden min-h-0 space-y-5 overflow-y-auto rounded-xl border bg-card p-3 lg:block lg:pr-2">
           <div className="space-y-0.5">
             <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Comptes
@@ -349,8 +356,60 @@ function UnifiedInbox() {
           </div>
         </aside>
 
+        {/* Barre mobile : dossiers, comptes et filtre (le rail est masqué en dessous de lg) */}
+        <div className="flex flex-wrap items-center gap-2 lg:hidden">
+          <Select
+            value={folder}
+            onValueChange={(v) => {
+              setFolder(v as MailFolderKind);
+              setSelected(null);
+            }}
+          >
+            <SelectTrigger className="h-9 w-[140px] rounded-lg">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FOLDER_ORDER.map((f) => (
+                <SelectItem key={f} value={f}>
+                  {FOLDER_LABELS[f]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={accountId ?? "all"}
+            onValueChange={(v) => setAccountId(v === "all" ? null : v)}
+          >
+            <SelectTrigger className="h-9 min-w-0 flex-1 rounded-lg">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les comptes</SelectItem>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            size="sm"
+            variant={unreadOnly ? "default" : "outline"}
+            className="h-9 rounded-lg"
+            onClick={() => setUnreadOnly((v) => !v)}
+          >
+            Non lus
+          </Button>
+        </div>
+
         {/* Colonne 2 : liste des messages */}
-        <section className="min-h-0 overflow-y-auto rounded-xl border bg-card">
+        <section
+          className={`min-h-0 overflow-y-auto rounded-xl border bg-card ${
+            selected ? "hidden lg:block" : "block"
+          }`}
+        >
           {(isLoading || isFetching) && messages.length === 0 && (
             <p className="px-5 py-8 text-sm text-muted-foreground">Chargement des messages…</p>
           )}
@@ -410,7 +469,11 @@ function UnifiedInbox() {
         </section>
 
         {/* Colonne 3 : lecture */}
-        <section className="min-h-0 overflow-y-auto rounded-xl border bg-card">
+        <section
+          className={`rounded-xl border bg-card lg:min-h-0 lg:overflow-y-auto ${
+            selected ? "block" : "hidden lg:block"
+          }`}
+        >
           {!selected && (
             <div className="flex h-full flex-col items-center justify-center px-6 py-20 text-center">
               <MailOpen className="h-8 w-8 text-muted-foreground" />
@@ -423,7 +486,7 @@ function UnifiedInbox() {
             <p className="px-6 py-8 text-sm text-muted-foreground">Ouverture du message…</p>
           )}
           {selected && message && (
-            <div className="flex h-full flex-col">
+            <div className="flex min-h-[70vh] flex-col lg:h-full">
               {/* En-tête du message */}
               <div className="border-b px-6 py-5">
                 <Button
