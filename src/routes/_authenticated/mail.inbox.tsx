@@ -261,7 +261,9 @@ function UnifiedInbox() {
       {(listing?.errors?.length ?? 0) > 0 && (
         <Alert variant="destructive">
           <TriangleAlert className="h-4 w-4" />
-          <AlertDescription>{listing!.errors.join(" · ")}</AlertDescription>
+          <AlertDescription>
+            {Array.from(new Set(listing!.errors)).join(" · ")}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -314,7 +316,7 @@ function UnifiedInbox() {
       </div>
 
       {/* Coque */}
-      <div className="flex min-h-[600px] overflow-hidden rounded-2xl bg-background ring-1 ring-border/50 lg:h-[calc(100dvh-12rem)]">
+      <div className="flex min-h-[600px] overflow-hidden rounded-2xl bg-background ring-1 ring-border/50 lg:h-[calc(100dvh-10rem)]">
         {/* Rail */}
         <aside className="hidden w-[224px] shrink-0 flex-col border-r border-border/40 bg-muted/30 lg:flex">
           <div className="px-4 pb-2 pt-5">
@@ -473,11 +475,11 @@ function UnifiedInbox() {
                     {m.snippet}
                   </p>
 
-                  {(m.starred || m.hasAttachments || accountId === null) && (
+                  {(m.starred || m.hasAttachments || (accountId === null && accounts.length > 1)) && (
                     <div className="mt-2 flex items-center gap-2 text-muted-foreground">
                       {m.starred && <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />}
                       {m.hasAttachments && <Paperclip className="h-3.5 w-3.5" />}
-                      {accountId === null && (
+                      {accountId === null && accounts.length > 1 && (
                         <span className="truncate text-[11px]">{m.accountEmail}</span>
                       )}
                     </div>

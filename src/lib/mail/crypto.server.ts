@@ -18,11 +18,19 @@ export function encryptSecret(plaintext: string): string {
 }
 
 export function decryptSecret(stored: string): string {
-  const buf = Buffer.from(stored, "base64");
-  const iv = buf.subarray(0, 12);
-  const tag = buf.subarray(12, 28);
-  const ct = buf.subarray(28);
-  const decipher = createDecipheriv("aes-256-gcm", key(), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
+  try {
+    const buf = Buffer.from(stored, "base64");
+    const iv = buf.subarray(0, 12);
+    const tag = buf.subarray(12, 28);
+    const ct = buf.subarray(28);
+    const decipher = createDecipheriv("aes-256-gcm", key(), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
+  } catch {
+    // Cas typique : la clé MAIL_CRYPTO_KEY a changé depuis l'enregistrement du compte.
+    // Le message brut d'OpenSSL n'aide pas l'utilisateur, on explique l'action à faire.
+    throw new Error(
+      "Ce compte doit être reconnecté : ses jetons ne sont plus déchiffrables. Supprimez-le puis rajoutez-le depuis les paramètres de messagerie.",
+    );
+  }
 }
