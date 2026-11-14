@@ -48,9 +48,13 @@ async function api<T>(
   const text = await res.text();
   if (!res.ok) {
     console.error(`[gmail] ${init?.method ?? "GET"} ${path} -> ${res.status}: ${text}`);
-    if (res.status === 401 || res.status === 403)
+    if (res.status === 401)
       throw new Error(
-        "Accès Gmail refusé. Reconnectez le compte depuis les paramètres de messagerie.",
+        "La session Gmail a expiré. Reconnectez le compte depuis les paramètres de messagerie.",
+      );
+    if (res.status === 403)
+      throw new Error(
+        "Le compte n'a pas accordé les droits nécessaires (lecture et envoi). Reconnectez-le en acceptant toutes les autorisations.",
       );
     throw new Error("Gmail a refusé l'opération. Réessayez dans un instant.");
   }
