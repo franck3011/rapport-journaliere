@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   Loader2,
   MailOpen,
   Paperclip,
+  PanelLeft,
   Pen,
   RefreshCw,
   Search,
@@ -70,6 +71,9 @@ export const Route = createFileRoute("/_authenticated/mail/inbox")({
   }),
   component: UnifiedInbox,
 });
+
+/** Dossiers toujours visibles ; les autres sont derrière « Afficher plus ». */
+const ESSENTIAL_FOLDERS: MailFolderKind[] = ["inbox", "sent", "drafts", "archive"];
 
 /** Heure si c'est aujourd'hui, date courte sinon. */
 function messageTime(iso: string): string {
@@ -132,6 +136,26 @@ function UnifiedInbox() {
   const [selected, setSelected] = useState<{ accountId: string; messageId: string } | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [seed, setSeed] = useState<ComposeSeed | undefined>();
+  const [showAllFolders, setShowAllFolders] = useState(false);
+  const [railOpen, setRailOpen] = useState(true);
+
+  useEffect(() => {
+    if (localStorage.getItem("mail.railOpen") === "0") setRailOpen(false);
+  }, []);
+
+  function toggleRail() {
+    setRailOpen((v) => {
+      const next = !v;
+      localStorage.setItem("mail.railOpen", next ? "1" : "0");
+      return next;
+    });
+  }
+
+  const folderList = useMemo(() => {
+    // On garde toujours le dossier actif visible, même s'il fait partie des secondaires.
+    if (showAllFolders || !ESSENTIAL_FOLDERS.includes(folder)) return FOLDER_ORDER;
+    return FOLDER_ORDER.filter((f) => ESSENTIAL_FOLDERS.includes(f));
+  }, [showAllFolders, folder]);
 
   const { data: status } = useQuery({ queryKey: ["mail", "status"], queryFn: () => statusFn() });
   const accounts = status?.accounts ?? [];
@@ -233,6 +257,16 @@ function UnifiedInbox() {
     <div className="space-y-5">
       {/* Barre supérieure */}
       <div className="flex flex-wrap items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden h-9 w-9 shrink-0 rounded-full text-muted-foreground lg:inline-flex"
+          onClick={toggleRail}
+          aria-label={railOpen ? "Masquer les dossiers" : "Afficher les dossiers"}
+          title={railOpen ? "Masquer les dossiers" : "Afficher les dossiers"}
+        >
+          <PanelLeft className="h-[18px] w-[18px]" />
+        </Button>
         <h1 className="text-xl font-semibold tracking-tight">Messagerie</h1>
 
         <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
@@ -318,7 +352,11 @@ function UnifiedInbox() {
       {/* Coque */}
       <div className="flex min-h-[600px] overflow-hidden rounded-2xl bg-background ring-1 ring-border/50 lg:h-[calc(100dvh-10rem)]">
         {/* Rail */}
-        <aside className="hidden w-[224px] shrink-0 flex-col border-r border-border/40 bg-muted/30 lg:flex">
+        <aside
+          className={`hidden w-[224px] shrink-0 flex-col border-r border-border/40 bg-muted/30 ${
+            railOpen ? "lg:flex" : "lg:hidden"
+          }`}
+        >
           <div className="px-4 pb-2 pt-5">
             <Button
               className="h-10 w-full justify-start rounded-full"
@@ -337,7 +375,7 @@ function UnifiedInbox() {
               Dossiers
             </p>
             <div className="space-y-0.5">
-              {FOLDER_ORDER.map((f) => (
+              {folderList.map((f) => (
                 <button
                   key={f}
                   type="button"
@@ -355,6 +393,25 @@ function UnifiedInbox() {
                 </button>
               ))}
             </div>
+
+            {folderList.length < FOLDER_ORDER.length && (
+              <button
+                type="button"
+                onClick={() => setShowAllFolders(true)}
+                className="mt-1 w-full rounded-lg px-3 py-1.5 text-left text-[12px] text-muted-foreground transition hover:bg-background/70 hover:text-foreground"
+              >
+                Afficher plus
+              </button>
+            )}
+            {showAllFolders && (
+              <button
+                type="button"
+                onClick={() => setShowAllFolders(false)}
+                className="mt-1 w-full rounded-lg px-3 py-1.5 text-left text-[12px] text-muted-foreground transition hover:bg-background/70 hover:text-foreground"
+              >
+                Afficher moins
+              </button>
+            )}
 
             <p className="px-2 pb-2 pt-6 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
               Comptes
