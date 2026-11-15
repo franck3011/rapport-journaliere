@@ -308,6 +308,37 @@ export const updateInvoiceStatus = createServerFn({ method: "POST" })
     if (data.status === "paid") patch.paid_at = new Date().toISOString();
     const { error } = await supabaseAdmin.from("company_invoices").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Paiement encaissé : on applique le plan que l'entreprise avait demandé.
+    if (data.status === "paid") {
+      const { data: invoice } = await supabaseAdmin
+        .from("company_invoices")
+        .select("company_id")
+        .eq("id", data.id)
+        .maybeSingle();
+
+      if (invoice?.company_id) {
+        const { data: company } = await supabaseAdmin
+          .from("companies")
+          .select("pending_plan_id, pending_billing_cycle")
+          .eq("id", invoice.company_id)
+          .maybeSingle();
+
+        if (company?.pending_plan_id) {
+          await supabaseAdmin
+            .from("companies")
+            .update({
+              plan_id: company.pending_plan_id,
+              billing_cycle: company.pending_billing_cycle ?? "monthly",
+              subscription_status: "active",
+              pending_plan_id: null,
+              pending_billing_cycle: null,
+            })
+            .eq("id", invoice.company_id);
+        }
+      }
+    }
+
     await logAction(context.userId, `invoice.${data.status}`, "invoice", data.id);
     return { ok: true };
   });

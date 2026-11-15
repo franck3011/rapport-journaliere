@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { listPlans } from "@/lib/admin.functions";
+import { PaymentInstructions } from "@/components/billing/PaymentInstructions";
 import {
   getMyCompanyPlan,
   requestPlanChange,
@@ -112,6 +113,8 @@ function PlansPage() {
           Créez ou rejoignez une entreprise pour pouvoir choisir un plan.
         </p>
       )}
+
+      {pendingId && <PaymentInstructions />}
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Chargement…</div>
