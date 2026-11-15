@@ -1,7 +1,8 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyProfile, updateMyProfile } from "@/lib/reports.functions";
+import { getMyCompanyPlan } from "@/lib/company.functions";
 import { listMyVerificationRequests } from "@/lib/reserved-names.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { RequestVerificationDialog } from "@/components/RequestVerificationDialog";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldCheck } from "lucide-react";
+import { Loader2, LogOut, ShieldCheck, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/profile")({
@@ -41,6 +42,12 @@ function ProfilePage() {
   useEffect(() => {
     if (q.data) setFullName(q.data.full_name ?? "");
   }, [q.data]);
+
+  const planFn = useServerFn(getMyCompanyPlan);
+  const { data: plan, isLoading: planLoading } = useQuery({
+    queryKey: ["my-plan"],
+    queryFn: () => planFn(),
+  });
 
   const mut = useMutation({
     mutationFn: (payload: { full_name?: string; avatar_url?: string | null }) =>
@@ -141,6 +148,62 @@ function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Abonnement
+          </CardTitle>
+          <CardDescription>
+            La formule de {plan?.companyName ?? "votre entreprise"}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {planLoading ? (
+            <p className="text-sm text-muted-foreground">Chargement…</p>
+          ) : !plan?.companyId ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune entreprise associée à votre compte.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-lg font-semibold">
+                  {plan.currentPlanName ?? "Aucun plan"}
+                </span>
+                {plan.currentPlanName && (
+                  <Badge variant="secondary">
+                    {plan.billingCycle === "yearly" ? "Annuel" : "Mensuel"}
+                  </Badge>
+                )}
+                {plan.pendingPlanName && (
+                  <Badge variant="outline">Demande en attente : {plan.pendingPlanName}</Badge>
+                )}
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {plan.currentPlanName
+                  ? "Votre formule détermine les applications accessibles et le nombre de sièges."
+                  : "Aucune formule active : toutes les applications restent accessibles jusqu'au choix d'un plan."}
+              </p>
+
+              <Button asChild size="sm" variant={plan.isOwner ? "default" : "outline"}>
+                <Link to="/plans">
+                  {plan.isOwner ? "Gérer mon abonnement" : "Voir les formules"}
+                </Link>
+              </Button>
+
+              {!plan.isOwner && (
+                <p className="text-xs text-muted-foreground">
+                  Seul le dirigeant de l'entreprise peut changer de formule.
+                </p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       <Card id="verification" className="hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
