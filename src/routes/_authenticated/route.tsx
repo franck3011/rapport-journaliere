@@ -23,6 +23,7 @@ import {
   Search,
   ListChecks,
 } from "lucide-react";
+import { ErrorLogger } from "@/components/ErrorLogger";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -133,6 +134,7 @@ function AuthenticatedLayout() {
         <main className="flex-1 min-w-0">
           <Outlet />
         </main>
+        <ErrorLogger />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
@@ -211,6 +213,7 @@ function AuthenticatedLayout() {
         <main className="flex-1 min-w-0">
           <Outlet />
         </main>
+        <ErrorLogger />
         <CommandPalette />
         <CompanyChatWidget />
       </div>

@@ -31,7 +31,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, ShieldAlert, Trash2, Plus, Users, Lock, LayoutDashboard, Package, Receipt, ScrollText, UserCog } from "lucide-react";
+import { Shield, ShieldAlert, Trash2, Plus, Users, Lock, LayoutDashboard, Package, Receipt, ScrollText, UserCog, Bug } from "lucide-react";
+import { ErrorsPanel } from "@/components/admin/ErrorsPanel";
 import { toast } from "sonner";
 import { formatLongDate } from "@/lib/date-utils";
 import { DashboardPanel } from "@/components/admin/DashboardPanel";
@@ -104,6 +105,7 @@ function AdminPage() {
           <TabsTrigger value="reserved"><Lock className="h-4 w-4 mr-1" />Noms réservés</TabsTrigger>
           <TabsTrigger value="admins"><Shield className="h-4 w-4 mr-1" />Super admins</TabsTrigger>
           <TabsTrigger value="audit"><ScrollText className="h-4 w-4 mr-1" />Audit</TabsTrigger>
+          <TabsTrigger value="errors"><Bug className="h-4 w-4 mr-1" />Erreurs</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4"><DashboardPanel /></TabsContent>
         <TabsContent value="companies" className="mt-4"><CompaniesPanel /></TabsContent>
@@ -114,6 +116,7 @@ function AdminPage() {
         <TabsContent value="reserved" className="mt-4"><ReservedNamesPanel /></TabsContent>
         <TabsContent value="admins" className="mt-4"><AdminsPanel /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditPanel /></TabsContent>
+        <TabsContent value="errors" className="mt-4"><ErrorsPanel /></TabsContent>
       </Tabs>
 
     </div>
