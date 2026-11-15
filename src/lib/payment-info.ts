@@ -4,7 +4,7 @@
  */
 export const PAYMENT_INFO = {
   holder: "DailyBrief",
-  phone: "+225 00 00 00 00 00",
+  phone: "+225 07 88 48 05 94",
   providers: ["Orange Money", "MTN MoMo", "Wave"],
   note: "Après le transfert, envoyez la capture de la transaction par WhatsApp. Votre accès est activé sous 24 heures ouvrées.",
 } as const;
