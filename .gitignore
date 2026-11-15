@@ -41,3 +41,5 @@ dist-ssr
 
 # Sauvegardes locales de la base
 backups/
+# Identifiants de sauvegarde locale (ne jamais committer)
+backup.env
