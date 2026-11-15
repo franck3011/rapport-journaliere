@@ -1,3 +1,4 @@
+import { formatPrice } from "@/lib/currency";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,7 +15,7 @@ import { Package, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 function eur(cents: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
+  return formatPrice(cents);
 }
 
 export function PlansPanel() {

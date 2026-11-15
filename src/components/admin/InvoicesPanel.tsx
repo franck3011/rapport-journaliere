@@ -1,3 +1,4 @@
+import { formatPrice } from "@/lib/currency";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,7 +17,7 @@ import { toast } from "sonner";
 import { formatLongDate } from "@/lib/date-utils";
 
 function eur(cents: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
+  return formatPrice(cents);
 }
 
 const STATUSES = ["draft", "sent", "paid", "void", "overdue"] as const;
