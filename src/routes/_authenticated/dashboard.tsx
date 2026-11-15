@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { getDashboardSummary } from "@/lib/dashboard.functions";
+import { OnboardingPanel } from "@/components/onboarding/OnboardingPanel";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -101,6 +102,8 @@ function DashboardPage() {
           <Link to="/apps">Toutes les applications</Link>
         </Button>
       </header>
+
+      <OnboardingPanel />
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
