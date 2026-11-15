@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { OPTIONAL_MODULE_CODES, getModule } from "./registry";
+import { OPTIONAL_MODULE_CODES } from "./registry";
+import { featureForModule, featureLabel, type FeatureCode } from "@/lib/plans/features";
 
 export type ModuleState = {
   companyId: string | null;
@@ -7,11 +8,11 @@ export type ModuleState = {
   /** codes des modules désactivés pour l'entreprise */
   disabled: string[];
   /**
-   * Rang du plan de l'entreprise (colonne `sort_order` du plan).
+   * Codes des fonctionnalités incluses dans le plan de l'entreprise.
    * `null` = aucun plan souscrit : aucune restriction n'est appliquée, pour ne
    * jamais bloquer une entreprise existante qui n'a pas encore choisi de palier.
    */
-  planRank: number | null;
+  features: string[] | null;
 };
 
 export async function loadModuleState(
@@ -24,7 +25,7 @@ export async function loadModuleState(
     .eq("user_id", userId)
     .maybeSingle();
   if (!mem?.company_id)
-    return { companyId: null, isOwner: false, disabled: [], planRank: null };
+    return { companyId: null, isOwner: false, disabled: [], features: null };
 
   const [{ data: company }, { data: rows }] = await Promise.all([
     supabase
@@ -43,26 +44,35 @@ export async function loadModuleState(
     .map((r: any) => r.module_code as string)
     .filter((code: string) => OPTIONAL_MODULE_CODES.includes(code));
 
-  let planRank: number | null = null;
+  let features: string[] | null = null;
   const planId = (company as any)?.plan_id as string | null | undefined;
   if (planId) {
     const { data: plan } = await supabase
       .from("subscription_plans")
-      .select("sort_order")
+      .select("features")
       .eq("id", planId)
       .maybeSingle();
-    planRank = ((plan as any)?.sort_order as number) ?? null;
+    const raw = (plan as any)?.features;
+    features = Array.isArray(raw) ? (raw as string[]) : [];
   }
 
   return {
     companyId: mem.company_id as string,
     isOwner: (company as any)?.owner_id === userId,
     disabled,
-    planRank,
+    features,
   };
 }
 
-/** Vérifie qu'un module est autorisé : activé pour l'entreprise et inclus dans son plan. */
+/** Vrai si le plan de l'entreprise inclut la fonctionnalité (ou si aucun plan n'est défini). */
+export function hasFeature(state: ModuleState, code: FeatureCode): boolean {
+  if (state.features === null) return true;
+  return state.features.includes(code);
+}
+
+/**
+ * Vérifie qu'un module est autorisé : activé pour l'entreprise et inclus dans son plan.
+ */
 export async function assertModuleEnabled(
   supabase: SupabaseClient<any>,
   userId: string,
@@ -73,20 +83,26 @@ export async function assertModuleEnabled(
   if (state.disabled.includes(code))
     throw new Error("Cette application est désactivée pour votre entreprise");
 
-  const required = getModule(code)?.minPlanRank;
-  if (required && state.planRank !== null && state.planRank < required) {
-    const { data: plan } = await supabase
-      .from("subscription_plans")
-      .select("name")
-      .eq("sort_order", required)
-      .maybeSingle();
-    const name = (plan as any)?.name as string | undefined;
+  const required = featureForModule(code);
+  if (required && !hasFeature(state, required)) {
     throw new Error(
-      name
-        ? `Cette application est incluse à partir du plan ${name}.`
-        : "Cette application n'est pas incluse dans votre plan actuel.",
+      `« ${featureLabel(required)} » n'est pas incluse dans votre plan. Changez de formule depuis la page Abonnement.`,
     );
   }
 
   return state.companyId;
+}
+
+/** Vérifie qu'une fonctionnalité est incluse dans le plan. */
+export async function assertFeature(
+  supabase: SupabaseClient<any>,
+  userId: string,
+  code: FeatureCode,
+): Promise<void> {
+  const state = await loadModuleState(supabase, userId);
+  if (!hasFeature(state, code)) {
+    throw new Error(
+      `« ${featureLabel(code)} » n'est pas incluse dans votre plan actuel.`,
+    );
+  }
 }

@@ -1,4 +1,5 @@
 import { formatPrice } from "@/lib/currency";
+import { FEATURES } from "@/lib/plans/features";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -109,7 +110,7 @@ function PlanDialog({ plan }: { plan?: Plan }) {
     yearly_price_cents: plan?.yearly_price_cents ?? 0,
     seat_limit: plan?.seat_limit ?? 3,
     price_per_extra_seat_cents: plan?.price_per_extra_seat_cents ?? 0,
-    features: (plan?.features ?? []).join("\n"),
+    features: Array.isArray(plan?.features) ? plan.features : [],
     is_active: plan?.is_active ?? true,
     sort_order: plan?.sort_order ?? 0,
   }));
@@ -126,7 +127,7 @@ function PlanDialog({ plan }: { plan?: Plan }) {
           yearly_price_cents: Number(form.yearly_price_cents),
           seat_limit: Number(form.seat_limit),
           price_per_extra_seat_cents: Number(form.price_per_extra_seat_cents),
-          features: form.features.split("\n").map((f) => f.trim()).filter(Boolean),
+          features: form.features,
           is_active: form.is_active,
           sort_order: Number(form.sort_order),
         },
@@ -190,8 +191,44 @@ function PlanDialog({ plan }: { plan?: Plan }) {
             </div>
           </div>
           <div>
-            <Label>Fonctionnalités (une par ligne)</Label>
-            <Textarea rows={4} value={form.features} onChange={(e) => setForm({ ...form, features: e.target.value })} />
+            <Label>Fonctionnalités incluses</Label>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Cochées = incluses dans ce plan. Les lignes marquées « commercial » ne sont pas
+              contrôlées par l'application.
+            </p>
+            <div className="space-y-2 rounded-lg border p-3">
+              {FEATURES.map((feature) => {
+                const checked = form.features.includes(feature.code);
+                return (
+                  <label
+                    key={feature.code}
+                    className="flex cursor-pointer items-start gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 rounded"
+                      checked={checked}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          features: e.target.checked
+                            ? [...form.features, feature.code]
+                            : form.features.filter((c) => c !== feature.code),
+                        })
+                      }
+                    />
+                    <span>
+                      {feature.label}
+                      {!feature.enforced && (
+                        <span className="ml-1.5 text-xs text-muted-foreground">
+                          (commercial, non vérifié)
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
