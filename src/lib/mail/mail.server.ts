@@ -57,6 +57,19 @@ export async function logMailEvent(
 /* Comptes                                                             */
 /* ------------------------------------------------------------------ */
 
+/** La messagerie est incluse à partir du plan 2 (Équipe) quand un plan est défini. */
+async function assertMailPlan(
+  supabase: SupabaseClient<any>,
+  userId: string,
+): Promise<void> {
+  const { loadModuleState } = await import("@/lib/modules/modules.server");
+  const state = await loadModuleState(supabase, userId);
+  if (state.planRank !== null && state.planRank < 2) {
+    throw new Error(
+      "La messagerie est incluse à partir du plan Équipe. Changez de plan depuis la page Abonnement.",
+    );
+  }
+}
 export async function listAccountsFor(
   supabase: SupabaseClient<any>,
   userId: string,

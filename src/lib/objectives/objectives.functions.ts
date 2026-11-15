@@ -34,6 +34,8 @@ export const listObjectives = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<ObjectiveRow[]> => {
     const supabase: any = context.supabase;
     const userId: string = context.userId;
+    const { assertModuleEnabled } = await import("@/lib/modules/modules.server");
+    await assertModuleEnabled(supabase, userId, "objectives");
     const companyId = await myCompanyId(supabase, userId);
     if (!companyId) return [];
 
@@ -113,6 +115,8 @@ export const createObjective = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const supabase: any = context.supabase;
     const userId: string = context.userId;
+    const { assertModuleEnabled } = await import("@/lib/modules/modules.server");
+    await assertModuleEnabled(supabase, userId, "objectives");
     const companyId = await myCompanyId(supabase, userId);
     if (!companyId) throw new Error("Vous devez appartenir à une entreprise.");
 
@@ -147,6 +151,8 @@ export const updateObjective = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const supabase: any = context.supabase;
+    const { assertModuleEnabled } = await import("@/lib/modules/modules.server");
+    await assertModuleEnabled(supabase, context.userId, "objectives");
     const patch: Record<string, unknown> = {};
     if (data.title !== undefined) patch.title = data.title;
     if (data.targetValue !== undefined) patch.target_value = data.targetValue;
@@ -164,6 +170,8 @@ export const deleteObjective = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const supabase: any = context.supabase;
+    const { assertModuleEnabled } = await import("@/lib/modules/modules.server");
+    await assertModuleEnabled(supabase, context.userId, "objectives");
     const { error } = await supabase.from("objectives").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

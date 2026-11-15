@@ -32,7 +32,7 @@ function AppsLauncher() {
   const [q, setQ] = useState("");
 
   const modules = useMemo(() => {
-    const list = launcherModules(state?.disabled);
+    const list = launcherModules(state?.disabled, state?.planRank);
     const needle = q.trim().toLowerCase();
     if (!needle) return list;
     return list.filter(

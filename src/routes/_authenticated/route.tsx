@@ -332,7 +332,7 @@ function SidebarInner({
   const avatarUrl = profile?.avatar_url ?? undefined;
   const displayName = profile?.full_name ?? email;
   const initials = (profile?.full_name ?? email ?? "?").slice(0, 2).toUpperCase();
-  const mods = visibleModules(moduleState?.disabled);
+  const mods = visibleModules(moduleState?.disabled, moduleState?.planRank);
   const current =
     mods.find((m) => m.code === moduleForPath(pathname)?.code) ?? mods[0];
   const moduleScreens = (current?.screens ?? []).filter(

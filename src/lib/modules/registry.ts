@@ -48,6 +48,11 @@ export type AppModule = {
   retired?: boolean;
   /** Affiché en raccourci permanent dans le menu latéral. */
   pinned?: boolean;
+  /**
+   * Rang minimal du plan (colonne `sort_order`) pour accéder au module.
+   * Absent = accessible à tous les plans.
+   */
+  minPlanRank?: number;
   screens: ModuleScreen[];
 };
 
@@ -76,6 +81,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "actions",
+    minPlanRank: 1,
     name: "Actions",
     pinned: true,
     description:
@@ -88,6 +94,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "objectives",
+    minPlanRank: 2,
     name: "Objectifs",
     pinned: true,
     description:
@@ -199,6 +206,7 @@ export const APP_MODULES: AppModule[] = [
   },
   {
     code: "mail",
+    minPlanRank: 2,
     name: "Messagerie",
     description:
       "Tous vos comptes e-mail (Gmail, Outlook, Yahoo, professionnel) dans une seule boîte unifiée.",
@@ -284,15 +292,24 @@ export function moduleForPath(pathname: string): AppModule | undefined {
     );
 }
 
-/** Liste des modules visibles pour un jeu de modules activés. */
+/** Liste des modules visibles pour un jeu de modules activés et un rang de plan. */
 export function visibleModules(
   disabledCodes: string[] | undefined | null,
+  planRank?: number | null,
 ): AppModule[] {
   const disabled = new Set(disabledCodes ?? []);
-  return APP_MODULES.filter((m) => !m.retired && (m.core || !disabled.has(m.code)));
+  return APP_MODULES.filter(
+    (m) =>
+      !m.retired &&
+      (m.core || !disabled.has(m.code)) &&
+      (planRank == null || !m.minPlanRank || planRank >= m.minPlanRank),
+  );
 }
 
 /** Modules affichés dans le lanceur (hors pages système). */
-export function launcherModules(disabledCodes: string[] | undefined | null): AppModule[] {
-  return visibleModules(disabledCodes).filter((m) => !m.hiddenFromLauncher);
+export function launcherModules(
+  disabledCodes: string[] | undefined | null,
+  planRank?: number | null,
+): AppModule[] {
+  return visibleModules(disabledCodes, planRank).filter((m) => !m.hiddenFromLauncher);
 }
