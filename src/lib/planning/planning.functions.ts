@@ -698,6 +698,7 @@ export type PlanReportRow = {
   title: string;
   report_date: string;
   intro: string;
+  author_name: string;
 };
 
 export const listPlanReports = createServerFn({ method: "GET" })
@@ -706,14 +707,25 @@ export const listPlanReports = createServerFn({ method: "GET" })
     const supabase: any = context.supabase;
     const { data } = await supabase
       .from("reports")
-      .select("id, title, report_date, intro")
+      .select("id, title, report_date, intro, author_id")
       .eq("doc_type", "plan")
       .order("report_date", { ascending: false })
       .limit(100);
-    return ((data ?? []) as any[]).map((row) => ({
+
+    const rows = (data ?? []) as any[];
+    const authorIds = Array.from(new Set(rows.map((r) => r.author_id).filter(Boolean)));
+    const { data: profs } = authorIds.length
+      ? await supabase.from("profiles_public").select("id, full_name").in("id", authorIds)
+      : { data: [] as any[] };
+    const nameOf = new Map<string, string>(
+      ((profs ?? []) as any[]).map((p) => [p.id, p.full_name || "Utilisateur"]),
+    );
+
+    return rows.map((row) => ({
       id: row.id,
       title: row.title ?? "",
       report_date: row.report_date,
       intro: row.intro ?? "",
+      author_name: nameOf.get(row.author_id) ?? "—",
     }));
   });

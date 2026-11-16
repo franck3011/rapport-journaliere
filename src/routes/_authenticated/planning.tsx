@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -15,13 +16,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CalendarDays, FileText, Loader2, Plus, Sparkles } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  CalendarDays,
+  Circle,
+  FileText,
+  Loader2,
+  MoreHorizontal,
+  Pen,
+  Plus,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import {
   createPlanReportFromNarrative,
   listPlanReports,
   structurePlanFromText,
   type StructuredPlan,
 } from "@/lib/planning/planning.functions";
+import { deleteReport } from "@/lib/reports.functions";
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({
@@ -32,7 +50,7 @@ export const Route = createFileRoute("/_authenticated/planning")({
         content: "Rédigez, partagez et imprimez le document qui décrit ce qui va se passer.",
       },
       { property: "og:title", content: "Planning — DailyBrief" },
-      { property: "og:description", content: "Le planning : un rapport, mais tourné vers l'avenir." },
+      { property: "og:description", content: "Le planning : un rapport tourné vers l'avenir." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -47,8 +65,8 @@ const startOfWeek = (d: Date) => {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day));
 };
 
-const fr = (day: string) =>
-  new Date(day + "T00:00:00Z").toLocaleDateString("fr-FR", {
+const formatLongDate = (value: string) =>
+  new Date(value + "T00:00:00Z").toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -61,6 +79,7 @@ function PlanningPage() {
   const listFn = useServerFn(listPlanReports);
   const structureFn = useServerFn(structurePlanFromText);
   const createFn = useServerFn(createPlanReportFromNarrative);
+  const deleteFn = useServerFn(deleteReport);
 
   const weekStart = startOfWeek(new Date());
   const [open, setOpen] = useState(false);
@@ -68,6 +87,7 @@ function PlanningPage() {
   const [to, setTo] = useState(iso(addDays(weekStart, 6)));
   const [summary, setSummary] = useState("");
   const [preview, setPreview] = useState<StructuredPlan | null>(null);
+  const [toDelete, setToDelete] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ["plan-reports"],
@@ -81,8 +101,7 @@ function PlanningPage() {
   });
 
   const create = useMutation({
-    mutationFn: () =>
-      createFn({ data: { narrative: preview!.document, reportDate: from } }),
+    mutationFn: () => createFn({ data: { narrative: preview!.document, reportDate: from } }),
     onSuccess: async ({ id }) => {
       toast.success("Planning créé");
       await qc.invalidateQueries({ queryKey: ["plan-reports"] });
@@ -94,70 +113,155 @@ function PlanningPage() {
     onError: (e: any) => toast.error(e?.message ?? "Création impossible"),
   });
 
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: async () => {
+      toast.success("Planning supprimé");
+      setToDelete(null);
+      await qc.invalidateQueries({ queryKey: ["plan-reports"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Suppression impossible"),
+  });
+
   const busy = structure.isPending || create.isPending;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <CalendarDays className="h-5 w-5 text-primary" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <CalendarDays className="h-6 w-6 text-primary" />
             Planning
           </h1>
           <p className="text-sm text-muted-foreground">
-            Un rapport, mais tourné vers l'avenir : ce qui va se passer sur la période.
+            Un rapport tourné vers l'avenir : ce qui va se passer sur la période.
           </p>
         </div>
-        <Button className="ml-auto" size="sm" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
           Nouveau planning
         </Button>
-      </div>
+      </header>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement…
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="h-40 animate-pulse p-5" />
+            </Card>
+          ))}
         </div>
       ) : plans.length === 0 ? (
-        <div className="rounded-xl border border-dashed py-16 text-center">
+        <div className="rounded-xl border border-dashed py-20 text-center">
           <FileText className="mx-auto h-8 w-8 text-muted-foreground/60" />
           <p className="mt-3 text-sm font-medium">Aucun planning rédigé</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Décris la période, l'assistant rédige, puis tu partages ou tu imprimes comme un rapport.
           </p>
-          <Button className="mt-4" size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
+          <Button className="mt-4" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
             Nouveau planning
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => (
-            <button
-              key={plan.id}
-              type="button"
-              onClick={() => navigate({ to: "/reports/$id", params: { id: plan.id } })}
-              className="block w-full rounded-lg border bg-card px-4 py-3 text-left transition hover:bg-muted/50"
-            >
-              <div className="flex items-baseline gap-3">
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {plan.title || "(sans titre)"}
-                </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  {fr(plan.report_date)}
-                </span>
-              </div>
-              {plan.intro && (
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {plan.intro}
-                </p>
-              )}
-            </button>
+            <Card key={plan.id} className="flex flex-col">
+              <CardContent className="flex flex-1 flex-col gap-3 p-5">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-medium text-primary">
+                    <Circle className="h-3.5 w-3.5" />
+                    {formatLongDate(plan.report_date)}
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="Actions"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() =>
+                          navigate({ to: "/reports/$id", params: { id: plan.id } })
+                        }
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Ouvrir
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          navigate({ to: "/reports/$id/edit", params: { id: plan.id } })
+                        }
+                      >
+                        <Pen className="h-4 w-4 mr-2" />
+                        Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => setToDelete(plan.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => navigate({ to: "/reports/$id", params: { id: plan.id } })}
+                >
+                  <h2 className="line-clamp-2 text-lg font-bold leading-snug">
+                    {plan.title || "(sans titre)"}
+                  </h2>
+                  {plan.intro && (
+                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                      {plan.intro}
+                    </p>
+                  )}
+                </button>
+
+                <div className="mt-auto border-t pt-3 text-sm text-muted-foreground">
+                  Par {plan.author_name || "—"}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
+      {/* Suppression */}
+      <Dialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer ce planning ?</DialogTitle>
+            <DialogDescription>
+              Le document sera définitivement supprimé, ainsi que ses liens de partage.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setToDelete(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => toDelete && remove.mutate(toDelete)}
+              disabled={remove.isPending}
+            >
+              {remove.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Création assistée */}
       <Dialog
         open={open}
         onOpenChange={(value) => {
@@ -220,7 +324,7 @@ function PlanningPage() {
           ) : (
             <div className="max-h-[55vh] space-y-3 overflow-y-auto rounded-lg border bg-white p-5 dark:bg-card">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                Période du {fr(from)} au {fr(to)}
+                Période du {formatLongDate(from)} au {formatLongDate(to)}
               </p>
               <h3 className="text-lg font-semibold leading-snug">{preview.document.title}</h3>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
