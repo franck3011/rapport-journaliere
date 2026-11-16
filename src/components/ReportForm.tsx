@@ -37,12 +37,14 @@ import {
   ImagePlus,
   X,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { fr } from "date-fns/locale";
 import { parseISO, format } from "date-fns";
 import type { LoadedReport } from "@/lib/reports.types";
 import { REPORT_TEMPLATES } from "@/lib/report-templates";
+import { CoherenceDialog } from "@/components/reports/CoherenceDialog";
 
 type FormBullet = { key: string; content: string };
 type FormImage = {
@@ -155,6 +157,7 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
     null,
   );
   const [aiOpen, setAiOpen] = useState(false);
+  const [coherenceOpen, setCoherenceOpen] = useState(false);
   const [aiStyle, setAiStyle] = useState<AIStyle>("free");
   const pdfInput = useRef<HTMLInputElement>(null);
 
@@ -595,11 +598,37 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
         <h1 className="text-xl font-semibold">
           {form.id ? "Modifier le rapport" : "Nouveau rapport"}
         </h1>
-        <Button variant="default" size="sm" onClick={() => setAiOpen(true)}>
-          <Sparkles className="h-4 w-4 mr-1.5" />
-          Assistant IA
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCoherenceOpen(true)}
+            title="Faire relire le rapport par l'agent contrôleur"
+          >
+            <ShieldCheck className="h-4 w-4 mr-1.5" />
+            Contrôle
+          </Button>
+          <Button variant="default" size="sm" onClick={() => setAiOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Assistant IA
+          </Button>
+        </div>
       </div>
+
+      <CoherenceDialog
+        open={coherenceOpen}
+        onOpenChange={setCoherenceOpen}
+        payload={{
+          title: form.title,
+          intro: form.intro,
+          conclusion: form.conclusion,
+          sections: form.sections.map((section) => ({
+            title: section.title,
+            description: section.description,
+            bullets: section.bullets.map((bullet) => bullet.content),
+          })),
+        }}
+      />
 
       {!form.id && (
         <Card>
