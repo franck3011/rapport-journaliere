@@ -17,6 +17,7 @@ import {
   type LucideIcon,
   CalendarClock,
   CalendarCheck2,
+  CalendarDays,
   CalendarRange,
   FolderOpen,
   Receipt,
@@ -98,6 +99,18 @@ export const APP_MODULES: AppModule[] = [
     entry: "/objectives",
     core: false,
     screens: [{ to: "/objectives", label: "Objectifs", icon: Target }],
+  },
+  {
+    code: "planning",
+    name: "Planning",
+    pinned: true,
+    description:
+      "Les travaux à venir, jour par jour : ce qui est prévu cette semaine, ce mois, sur chaque chantier.",
+    icon: CalendarDays,
+    tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    entry: "/planning",
+    core: false,
+    screens: [{ to: "/planning", label: "Planning", icon: CalendarDays }],
   },
   {
     code: "projects",
