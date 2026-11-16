@@ -1,0 +1,149 @@
+import { useMemo } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle2, FileText, Loader2 } from "lucide-react";
+import { createPlanReviewReport, type PlanItem } from "@/lib/planning/planning.functions";
+import { summarizePlan, frDate } from "@/lib/planning/summary";
+
+export function PlanSummaryDialog({
+  open,
+  onOpenChange,
+  items,
+  from,
+  to,
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  items: PlanItem[];
+  from: string;
+  to: string;
+}) {
+  const navigate = useNavigate();
+  const createFn = useServerFn(createPlanReviewReport);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const summary = useMemo(() => summarizePlan(items, today), [items, today]);
+
+  const create = useMutation({
+    mutationFn: () => createFn({ data: { from, to } }),
+    onSuccess: ({ id }) => {
+      toast.success("Rapport de bilan créé");
+      onOpenChange(false);
+      navigate({ to: "/reports/$id/edit", params: { id } });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Création impossible"),
+  });
+
+  const tone =
+    summary.rate >= 80
+      ? "bg-emerald-500"
+      : summary.rate >= 50
+        ? "bg-amber-500"
+        : "bg-destructive";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Bilan de la période
+          </DialogTitle>
+          <DialogDescription>
+            Du {frDate(from)} au {frDate(to)} — ce qui était prévu, ce qui a été fait.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="rounded-xl border p-4">
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold tabular-nums">{summary.rate} %</span>
+              <span className="text-sm text-muted-foreground">d'avancement</span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+              <div className={`h-full rounded-full ${tone}`} style={{ width: `${summary.rate}%` }} />
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {summary.done} réalisé{summary.done > 1 ? "s" : ""} sur {summary.total} planifié
+              {summary.total > 1 ? "s" : ""}
+              {summary.cancelled > 0 ? ` · ${summary.cancelled} annulé(s)` : ""}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: "Réalisés", value: summary.done, tone: "text-emerald-600 dark:text-emerald-400" },
+              { label: "En cours", value: summary.inProgress, tone: "text-amber-600 dark:text-amber-400" },
+              { label: "Prévus", value: summary.planned, tone: "text-muted-foreground" },
+              { label: "En retard", value: summary.late.length, tone: "text-destructive" },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg border p-3">
+                <div className={`text-2xl font-semibold tabular-nums ${stat.tone}`}>
+                  {stat.value}
+                </div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {summary.late.length > 0 && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+              <p className="flex items-center gap-2 text-sm font-medium">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                Travaux non réalisés dans les délais
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                {summary.late.slice(0, 6).map((item) => (
+                  <li key={item.id} className="truncate">
+                    • {item.title} — {item.owner_name}
+                  </li>
+                ))}
+                {summary.late.length > 6 && <li>… et {summary.late.length - 6} autre(s)</li>}
+              </ul>
+            </div>
+          )}
+
+          {summary.late.length === 0 && summary.total > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <p className="text-sm">Tous les travaux planifiés ont été menés dans les délais.</p>
+            </div>
+          )}
+
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Le rapport sera créé en brouillon avec quatre sections : travaux réalisés, travaux non
+            réalisés, travaux annulés, points à arbitrer. Tu le relis et le complètes avant de
+            l'envoyer.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={create.isPending}>
+            Fermer
+          </Button>
+          <Button onClick={() => create.mutate()} disabled={create.isPending || summary.total === 0}>
+            {create.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="mr-2 h-4 w-4" />
+            )}
+            Créer le rapport du bilan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

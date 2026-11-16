@@ -162,3 +162,147 @@ export const deletePlanItem = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Transforme le planning d'une période en rapport : ce qui était prévu,
+ * ce qui a été fait, ce qui ne l'a pas été. Le rapport est créé en brouillon,
+ * l'auteur le relit et le complète avant de l'envoyer.
+ */
+export const createPlanReviewReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ from: dateSchema, to: dateSchema }).parse(data),
+  )
+  .handler(async ({ data, context }): Promise<{ id: string }> => {
+    const supabase: any = context.supabase;
+    const userId: string = context.userId;
+    const companyId = await myCompanyId(supabase, userId);
+    if (!companyId) throw new Error("Vous devez appartenir à une entreprise.");
+
+    const { data: rows } = await supabase
+      .from("plan_items")
+      .select("*")
+      .eq("company_id", companyId)
+      .lte("planned_date", data.to)
+      .order("planned_date", { ascending: true })
+      .limit(500);
+
+    const items = ((rows ?? []) as any[]).filter((row) => {
+      const end = row.end_date ?? row.planned_date;
+      return end >= data.from;
+    });
+
+    if (items.length === 0) {
+      throw new Error("Aucun travail planifié sur cette période : il n'y a rien à rapporter.");
+    }
+
+    const ownerIds = Array.from(
+      new Set(items.map((i) => i.owner_id).filter((id): id is string => !!id)),
+    );
+    const { data: profs } = ownerIds.length
+      ? await supabase.from("profiles_public").select("id, full_name").in("id", ownerIds)
+      : { data: [] as any[] };
+    const nameOf = new Map<string, string>(
+      ((profs ?? []) as any[]).map((p) => [p.id, p.full_name || "Utilisateur"]),
+    );
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { summarizePlan, planLine } = await import("./summary");
+
+    const list: PlanItem[] = items.map((row) => ({
+      id: row.id,
+      title: row.title,
+      details: row.details ?? "",
+      planned_date: row.planned_date,
+      end_date: row.end_date,
+      owner_id: row.owner_id,
+      owner_name: row.owner_id ? nameOf.get(row.owner_id) ?? "Utilisateur" : "Non assigné",
+      status: row.status,
+      priority: row.priority,
+      created_by: row.created_by,
+    }));
+
+    const summary = summarizePlan(list, today);
+    const fr = (day: string) =>
+      new Date(day + "T00:00:00Z").toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        timeZone: "UTC",
+      });
+
+    const sections = [
+      {
+        title: "Travaux réalisés",
+        description: "",
+        bullets: summary.doneItems.map(planLine),
+      },
+      {
+        title: "Travaux non réalisés",
+        description: "",
+        bullets: summary.remaining.map((item) => {
+          const end = item.end_date ?? item.planned_date;
+          const suffix = end < today ? ` — en retard depuis le ${fr(end)}` : "";
+          return `${planLine(item)}${suffix}`;
+        }),
+      },
+      {
+        title: "Travaux annulés",
+        description: "",
+        bullets: list.filter((i) => i.status === "cancelled").map(planLine),
+      },
+      {
+        title: "Points à arbitrer",
+        description: "Ce qui demande une décision ou un moyen supplémentaire.",
+        bullets: summary.late
+          .filter((i) => i.priority !== "normal")
+          .map((i) => `${i.title} — ${i.owner_name} — priorité ${i.priority}`),
+      },
+    ].filter((section) => section.bullets.length > 0 || section.title === "Travaux non réalisés");
+
+    const intro = `Bilan de la période du ${fr(data.from)} au ${fr(data.to)} : ${summary.done} travail(aux) réalisé(s) sur ${summary.total} planifié(s), soit ${summary.rate} % d'avancement.`;
+    const conclusion =
+      summary.late.length > 0
+        ? `${summary.late.length} travail(aux) n'ont pas été réalisés dans les délais prévus.`
+        : "Tous les travaux planifiés ont été menés dans les délais.";
+
+    const { data: report, error } = await supabase
+      .from("reports")
+      .insert({
+        author_id: userId,
+        report_date: today,
+        title: `Bilan du planning — du ${fr(data.from)} au ${fr(data.to)}`,
+        intro,
+        conclusion,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { data: inserted, error: sectionError } = await supabase
+      .from("report_sections")
+      .insert(
+        sections.map((section, index) => ({
+          report_id: report.id,
+          title: section.title,
+          description: section.description,
+          position: index,
+        })),
+      )
+      .select("id");
+    if (sectionError) throw new Error(sectionError.message);
+
+    const bullets: any[] = [];
+    sections.forEach((section, index) => {
+      const sectionId = (inserted ?? [])[index]?.id;
+      if (!sectionId) return;
+      section.bullets.forEach((content, position) => {
+        bullets.push({ section_id: sectionId, content, position });
+      });
+    });
+    if (bullets.length > 0) {
+      const { error: bulletError } = await supabase.from("section_bullets").insert(bullets);
+      if (bulletError) throw new Error(bulletError.message);
+    }
+
+    return { id: report.id };
+  });

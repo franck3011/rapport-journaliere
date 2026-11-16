@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   createPlanItem,
   deletePlanItem,
@@ -33,6 +33,7 @@ import {
   type PlanStatus,
 } from "@/lib/planning/planning.functions";
 import { listActionMembers } from "@/lib/actions/actions.functions";
+import { PlanSummaryDialog } from "@/components/planning/PlanSummaryDialog";
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({
@@ -98,6 +99,7 @@ function PlanningPage() {
   const [anchor, setAnchor] = useState(() => new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PlanItem | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const range = useMemo(() => {
     if (view === "week") {
@@ -190,6 +192,10 @@ function PlanningPage() {
             ))}
           </div>
 
+          <Button variant="outline" size="sm" onClick={() => setSummaryOpen(true)}>
+            <FileText className="h-4 w-4 mr-1.5" />
+            Bilan
+          </Button>
           <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1.5" />
             Nouveau
@@ -278,6 +284,14 @@ function PlanningPage() {
         onSaved={invalidate}
         onDelete={(id) => { remove.mutate(id); setDialogOpen(false); }}
         onStatus={(id, status) => update.mutate({ id, status })}
+      />
+
+      <PlanSummaryDialog
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        items={items}
+        from={range.from}
+        to={range.to}
       />
     </div>
   );
