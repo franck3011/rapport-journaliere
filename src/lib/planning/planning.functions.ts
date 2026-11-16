@@ -306,3 +306,215 @@ export const createPlanReviewReport = createServerFn({ method: "POST" })
 
     return { id: report.id };
   });
+
+/* ------------------------- rédaction assistée par IA ------------------------- */
+
+export type PlanNarrative = {
+  title: string;
+  intro: string;
+  conclusion: string;
+  sections: { title: string; description: string; bullets: string[] }[];
+};
+
+const NARRATIVE_SYSTEM = `Tu rédiges le bilan d'une période de planning pour un rapport professionnel.
+Tu reçois des FAITS : des compteurs et la liste des travaux planifiés.
+Tu ne peux RIEN inventer : aucun chiffre, aucun nom, aucun événement absent des faits.
+Si une information manque, tu ne la supposes pas, tu l'ignores.
+
+Structure attendue :
+- une introduction de 2 à 3 phrases, commençant par les chiffres clés ;
+- 3 ou 4 sections courtes, avec un titre explicite et des puces factuelles
+  (une idée par puce, phrases courtes) ;
+- une conclusion de 1 à 2 phrases.
+
+Ton : professionnel, direct, sans emphase commerciale, sans adjectif inutile.
+Français correct, pas de jargon.
+
+Réponds UNIQUEMENT par un objet JSON valide :
+{
+  "title": "<titre du rapport>",
+  "intro": "<paragraphe>",
+  "sections": [{ "title": "<titre>", "description": "<une phrase ou vide>", "bullets": ["<puce>"] }],
+  "conclusion": "<paragraphe>"
+}`;
+
+export const generatePlanNarrative = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ from: dateSchema, to: dateSchema }).parse(data))
+  .handler(async ({ data, context }): Promise<PlanNarrative> => {
+    const supabase: any = context.supabase;
+    const userId: string = context.userId;
+    const companyId = await myCompanyId(supabase, userId);
+    if (!companyId) throw new Error("Vous devez appartenir à une entreprise.");
+
+    const { data: rows } = await supabase
+      .from("plan_items")
+      .select("*")
+      .eq("company_id", companyId)
+      .lte("planned_date", data.to)
+      .order("planned_date", { ascending: true })
+      .limit(500);
+
+    const items = ((rows ?? []) as any[]).filter((row) => {
+      const end = row.end_date ?? row.planned_date;
+      return end >= data.from;
+    });
+    if (items.length === 0) {
+      throw new Error("Aucun travail planifié sur cette période : il n'y a rien à rapporter.");
+    }
+
+    const ownerIds = Array.from(
+      new Set(items.map((i) => i.owner_id).filter((id): id is string => !!id)),
+    );
+    const { data: profs } = ownerIds.length
+      ? await supabase.from("profiles_public").select("id, full_name").in("id", ownerIds)
+      : { data: [] as any[] };
+    const nameOf = new Map<string, string>(
+      ((profs ?? []) as any[]).map((p) => [p.id, p.full_name || "Utilisateur"]),
+    );
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { summarizePlan } = await import("./summary");
+
+    const list: PlanItem[] = items.map((row) => ({
+      id: row.id,
+      title: row.title,
+      details: row.details ?? "",
+      planned_date: row.planned_date,
+      end_date: row.end_date,
+      owner_id: row.owner_id,
+      owner_name: row.owner_id ? nameOf.get(row.owner_id) ?? "Utilisateur" : "Non assigné",
+      status: row.status,
+      priority: row.priority,
+      created_by: row.created_by,
+    }));
+
+    const summary = summarizePlan(list, today);
+    const { callAI, parseJsonLoose } = await import("@/lib/ai-gateway.server");
+
+    const facts = {
+      periode: { du: data.from, au: data.to, aujourdhui: today },
+      compteurs: {
+        planifies: summary.total,
+        realises: summary.done,
+        en_cours: summary.inProgress,
+        prevus: summary.planned,
+        annules: summary.cancelled,
+        en_retard: summary.late.length,
+        taux_avancement_pourcent: summary.rate,
+      },
+      travaux: list.map((item) => ({
+        titre: item.title,
+        responsable: item.owner_name,
+        du: item.planned_date,
+        au: item.end_date ?? item.planned_date,
+        statut: item.status,
+        priorite: item.priority,
+        details: item.details.slice(0, 300),
+      })),
+    };
+
+    const raw = await callAI({
+      system: NARRATIVE_SYSTEM,
+      messages: [{ role: "user", content: JSON.stringify(facts).slice(0, 40000) }],
+      json: true,
+      temperature: 0.3,
+    });
+
+    const parsed = parseJsonLoose<any>(raw);
+    const sections = Array.isArray(parsed?.sections)
+      ? parsed.sections
+          .slice(0, 6)
+          .map((s: any) => ({
+            title: String(s?.title ?? "Section"),
+            description: String(s?.description ?? ""),
+            bullets: (Array.isArray(s?.bullets) ? s.bullets : [])
+              .map((b: any) => String(b ?? "").trim())
+              .filter(Boolean)
+              .slice(0, 20),
+          }))
+          .filter((s: any) => s.bullets.length > 0)
+      : [];
+
+    if (!parsed?.intro || sections.length === 0) {
+      throw new Error("L'assistant n'a pas produit de bilan exploitable. Réessayez.");
+    }
+
+    return {
+      title: String(parsed.title ?? "Bilan du planning"),
+      intro: String(parsed.intro),
+      conclusion: String(parsed.conclusion ?? ""),
+      sections,
+    };
+  });
+
+export const createPlanReportFromNarrative = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        narrative: z.object({
+          title: z.string().min(1).max(300),
+          intro: z.string().max(8000),
+          conclusion: z.string().max(8000).default(""),
+          sections: z
+            .array(
+              z.object({
+                title: z.string().max(200),
+                description: z.string().max(2000).default(""),
+                bullets: z.array(z.string().max(3000)).max(30),
+              }),
+            )
+            .min(1)
+            .max(8),
+        }),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }): Promise<{ id: string }> => {
+    const supabase: any = context.supabase;
+    const userId: string = context.userId;
+    const today = new Date().toISOString().slice(0, 10);
+    const doc = data.narrative;
+
+    const { data: report, error } = await supabase
+      .from("reports")
+      .insert({
+        author_id: userId,
+        report_date: today,
+        title: doc.title,
+        intro: doc.intro,
+        conclusion: doc.conclusion,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { data: inserted, error: sectionError } = await supabase
+      .from("report_sections")
+      .insert(
+        doc.sections.map((section, index) => ({
+          report_id: report.id,
+          title: section.title,
+          description: section.description,
+          position: index,
+        })),
+      )
+      .select("id");
+    if (sectionError) throw new Error(sectionError.message);
+
+    const bullets: any[] = [];
+    doc.sections.forEach((section, index) => {
+      const sectionId = (inserted ?? [])[index]?.id;
+      if (!sectionId) return;
+      section.bullets.forEach((content, position) => {
+        bullets.push({ section_id: sectionId, content, position });
+      });
+    });
+    if (bullets.length > 0) {
+      const { error: bulletError } = await supabase.from("section_bullets").insert(bullets);
+      if (bulletError) throw new Error(bulletError.message);
+    }
+
+    return { id: report.id };
+  });

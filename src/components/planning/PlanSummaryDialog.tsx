@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -12,8 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, FileText, Loader2 } from "lucide-react";
-import { createPlanReviewReport, type PlanItem } from "@/lib/planning/planning.functions";
+import { AlertTriangle, CheckCircle2, FileText, Loader2, Sparkles } from "lucide-react";
+import {
+  createPlanReportFromNarrative,
+  createPlanReviewReport,
+  generatePlanNarrative,
+  type PlanItem,
+  type PlanNarrative,
+} from "@/lib/planning/planning.functions";
 import { summarizePlan, frDate } from "@/lib/planning/summary";
 
 export function PlanSummaryDialog({
@@ -30,18 +36,37 @@ export function PlanSummaryDialog({
   to: string;
 }) {
   const navigate = useNavigate();
-  const createFn = useServerFn(createPlanReviewReport);
+  const mechanicalFn = useServerFn(createPlanReviewReport);
+  const generateFn = useServerFn(generatePlanNarrative);
+  const createFromNarrativeFn = useServerFn(createPlanReportFromNarrative);
+
+  const [narrative, setNarrative] = useState<PlanNarrative | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const summary = useMemo(() => summarizePlan(items, today), [items, today]);
 
-  const create = useMutation({
-    mutationFn: () => createFn({ data: { from, to } }),
-    onSuccess: ({ id }) => {
-      toast.success("Rapport de bilan créé");
-      onOpenChange(false);
-      navigate({ to: "/reports/$id/edit", params: { id } });
-    },
+  function goToReport(id: string) {
+    toast.success("Rapport créé");
+    onOpenChange(false);
+    setNarrative(null);
+    navigate({ to: "/reports/$id/edit", params: { id } });
+  }
+
+  const mechanical = useMutation({
+    mutationFn: () => mechanicalFn({ data: { from, to } }),
+    onSuccess: ({ id }) => goToReport(id),
+    onError: (e: any) => toast.error(e?.message ?? "Création impossible"),
+  });
+
+  const generate = useMutation({
+    mutationFn: () => generateFn({ data: { from, to } }),
+    onSuccess: (result) => setNarrative(result),
+    onError: (e: any) => toast.error(e?.message ?? "Génération impossible"),
+  });
+
+  const createFromNarrative = useMutation({
+    mutationFn: () => createFromNarrativeFn({ data: { narrative: narrative! } }),
+    onSuccess: ({ id }) => goToReport(id),
     onError: (e: any) => toast.error(e?.message ?? "Création impossible"),
   });
 
@@ -52,96 +77,187 @@ export function PlanSummaryDialog({
         ? "bg-amber-500"
         : "bg-destructive";
 
+  const busy = mechanical.isPending || generate.isPending || createFromNarrative.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) setNarrative(null);
+        onOpenChange(value);
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Bilan de la période
+            {narrative ? "Aperçu du bilan rédigé" : "Bilan de la période"}
           </DialogTitle>
           <DialogDescription>
             Du {frDate(from)} au {frDate(to)} — ce qui était prévu, ce qui a été fait.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
-          <div className="rounded-xl border p-4">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold tabular-nums">{summary.rate} %</span>
-              <span className="text-sm text-muted-foreground">d'avancement</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-              <div className={`h-full rounded-full ${tone}`} style={{ width: `${summary.rate}%` }} />
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              {summary.done} réalisé{summary.done > 1 ? "s" : ""} sur {summary.total} planifié
-              {summary.total > 1 ? "s" : ""}
-              {summary.cancelled > 0 ? ` · ${summary.cancelled} annulé(s)` : ""}
+        {narrative ? (
+          <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+            <h3 className="text-lg font-semibold leading-snug">{narrative.title}</h3>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+              {narrative.intro}
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: "Réalisés", value: summary.done, tone: "text-emerald-600 dark:text-emerald-400" },
-              { label: "En cours", value: summary.inProgress, tone: "text-amber-600 dark:text-amber-400" },
-              { label: "Prévus", value: summary.planned, tone: "text-muted-foreground" },
-              { label: "En retard", value: summary.late.length, tone: "text-destructive" },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-lg border p-3">
-                <div className={`text-2xl font-semibold tabular-nums ${stat.tone}`}>
-                  {stat.value}
-                </div>
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  {stat.label}
-                </div>
+            {narrative.sections.map((section, index) => (
+              <div key={index} className="space-y-1.5">
+                <h4 className="text-sm font-semibold">{section.title}</h4>
+                {section.description && (
+                  <p className="text-xs text-muted-foreground">{section.description}</p>
+                )}
+                <ul className="space-y-1">
+                  {section.bullets.map((bullet, bulletIndex) => (
+                    <li
+                      key={bulletIndex}
+                      className="flex gap-2 text-sm leading-relaxed text-foreground/90"
+                    >
+                      <span className="text-muted-foreground">•</span>
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
-          </div>
-
-          {summary.late.length > 0 && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-              <p className="flex items-center gap-2 text-sm font-medium">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                Travaux non réalisés dans les délais
+            {narrative.conclusion && (
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                {narrative.conclusion}
               </p>
-              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                {summary.late.slice(0, 6).map((item) => (
-                  <li key={item.id} className="truncate">
-                    • {item.title} — {item.owner_name}
-                  </li>
-                ))}
-                {summary.late.length > 6 && <li>… et {summary.late.length - 6} autre(s)</li>}
-              </ul>
-            </div>
-          )}
-
-          {summary.late.length === 0 && summary.total > 0 && (
-            <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <p className="text-sm">Tous les travaux planifiés ont été menés dans les délais.</p>
-            </div>
-          )}
-
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Le rapport sera créé en brouillon avec quatre sections : travaux réalisés, travaux non
-            réalisés, travaux annulés, points à arbitrer. Tu le relis et le complètes avant de
-            l'envoyer.
-          </p>
-        </div>
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={create.isPending}>
-            Fermer
-          </Button>
-          <Button onClick={() => create.mutate()} disabled={create.isPending || summary.total === 0}>
-            {create.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="mr-2 h-4 w-4" />
             )}
-            Créer le rapport du bilan
-          </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Texte produit par l'assistant à partir du planning réel. Tu pourras le modifier dans
+              l'éditeur avant de l'envoyer.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="rounded-xl border p-4">
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-semibold tabular-nums">{summary.rate} %</span>
+                <span className="text-sm text-muted-foreground">d'avancement</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full ${tone}`}
+                  style={{ width: `${summary.rate}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {summary.done} réalisé{summary.done > 1 ? "s" : ""} sur {summary.total} planifié
+                {summary.total > 1 ? "s" : ""}
+                {summary.cancelled > 0 ? ` · ${summary.cancelled} annulé(s)` : ""}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: "Réalisés", value: summary.done, tone: "text-emerald-600 dark:text-emerald-400" },
+                { label: "En cours", value: summary.inProgress, tone: "text-amber-600 dark:text-amber-400" },
+                { label: "Prévus", value: summary.planned, tone: "text-muted-foreground" },
+                { label: "En retard", value: summary.late.length, tone: "text-destructive" },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-lg border p-3">
+                  <div className={`text-2xl font-semibold tabular-nums ${stat.tone}`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {summary.late.length > 0 ? (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Travaux non réalisés dans les délais
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {summary.late.slice(0, 6).map((item) => (
+                    <li key={item.id} className="truncate">
+                      • {item.title} — {item.owner_name}
+                    </li>
+                  ))}
+                  {summary.late.length > 6 && <li>… et {summary.late.length - 6} autre(s)</li>}
+                </ul>
+              </div>
+            ) : (
+              summary.total > 0 && (
+                <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <p className="text-sm">
+                    Tous les travaux planifiés ont été menés dans les délais.
+                  </p>
+                </div>
+              )
+            )}
+
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              L'assistant rédige le bilan à partir de ces faits : il ne peut pas inventer de
+              chiffre ni d'événement. Le rapport est créé en brouillon, tu le relis avant l'envoi.
+            </p>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2">
+          {narrative ? (
+            <>
+              <Button
+                variant="ghost"
+                className="mr-auto"
+                onClick={() => setNarrative(null)}
+                disabled={busy}
+              >
+                Retour
+              </Button>
+              <Button variant="outline" onClick={() => generate.mutate()} disabled={busy}>
+                {generate.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Régénérer
+              </Button>
+              <Button onClick={() => createFromNarrative.mutate()} disabled={busy}>
+                {createFromNarrative.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-2 h-4 w-4" />
+                )}
+                Créer ce rapport
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                className="mr-auto text-muted-foreground"
+                onClick={() => mechanical.mutate()}
+                disabled={busy || summary.total === 0}
+              >
+                {mechanical.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Créer sans IA
+              </Button>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+                Fermer
+              </Button>
+              <Button onClick={() => generate.mutate()} disabled={busy || summary.total === 0}>
+                {generate.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Rédiger avec l'assistant
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
