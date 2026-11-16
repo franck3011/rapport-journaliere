@@ -108,6 +108,31 @@ export function CoherenceDialog({
                   style={{ width: `${result.score}%` }}
                 />
               </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {[
+                  { label: "Cohérence du fond", value: result.coherence },
+                  { label: "Qualité de forme", value: result.form },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {item.label}
+                      </span>
+                      <span className="text-xs font-semibold tabular-nums">
+                        {item.value}/100
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full ${scoreTone(item.value).bar}`}
+                        style={{ width: `${item.value}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <p className="mt-3 text-sm text-muted-foreground">{result.summary}</p>
             </div>
 
@@ -132,9 +157,18 @@ export function CoherenceDialog({
                       <div className="flex items-start gap-2">
                         <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${style.tone}`} />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">
-                            {finding.message}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                finding.category === "forme"
+                                  ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {finding.category === "forme" ? "Forme" : "Fond"}
+                            </span>
+                            <p className="text-sm font-medium">{finding.message}</p>
+                          </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             <span className="font-medium">{finding.section}</span>
                             {finding.suggestion ? ` — ${finding.suggestion}` : ""}

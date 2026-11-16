@@ -3,48 +3,69 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 export type ReviewSeverity = "info" | "warning" | "error";
+export type ReviewCategory = "fond" | "forme";
 
 export type ReviewFinding = {
   severity: ReviewSeverity;
+  category: ReviewCategory;
   section: string;
   message: string;
   suggestion: string;
 };
 
 export type ReviewResult = {
+  /** note globale 0-100 */
   score: number;
+  /** cohérence du contenu 0-100 */
+  coherence: number;
+  /** qualité de forme 0-100 */
+  form: number;
   summary: string;
   findings: ReviewFinding[];
 };
 
-const SYSTEM = `Tu es le CONTRÔLEUR DE COHÉRENCE d'un rapport professionnel.
-Tu ne rédiges pas le rapport : tu relèves ce qui ne tient pas debout avant qu'il soit envoyé.
+const SYSTEM = `Tu es le CONTRÔLEUR D'UN RAPPORT PROFESSIONNEL.
+Tu ne rédiges rien : tu relèves tout ce qui empêcherait ce rapport d'être envoyé tel quel.
+Tu es exigeant : ce rapport sera lu par un directeur ou un client. Il doit être PROPRE.
 
-Tu cherches, dans cet ordre de gravité :
-1. les contradictions (un chiffre qui contredit un autre, une date incohérente, un « terminé » ailleurs annoncé « en cours ») ;
-2. les informations essentielles manquantes (qui, quoi, quand, où, combien) ;
-3. les sections vides ou réduites à un titre ;
-4. les doublons (même information répétée dans deux sections) ;
-5. les affirmations sans preuve (« tout va bien » sans élément) ;
-6. les textes de remplissage évidents (lorem, « à compléter », points de suspension).
+Tu contrôles DEUX grilles.
+
+A. LE FOND (cohérence)
+1. contradictions : un chiffre qui contredit un autre, une date incohérente, « terminé » ici et « en cours » là ;
+2. informations essentielles manquantes : qui, quoi, quand, où, combien ;
+3. sections vides ou réduites à un titre ;
+4. doublons : même information répétée ;
+5. affirmations sans preuve (« tout va bien » sans élément) ;
+6. textes de remplissage (lorem, « à compléter », points de suspension).
+
+B. LA FORME (qualité rédactionnelle)
+7. fautes d'orthographe, accords, conjugaison, ponctuation ;
+8. phrases inachevées ou télégraphiques incompréhensibles ;
+9. ton inadapté : familiarité, oral, émojis, majuscules criardes ;
+10. titres de sections vagues (« Divers », « Autre », « Suite ») ;
+11. jargon interne non explicité, abréviations non définies ;
+12. incohérence de temps (passé/présent/futur mélangés) ou de personne (je/nous).
 
 Règles absolues :
-- Tu ne réécris jamais le rapport, tu signales et tu proposes.
-- Une remarque par problème réel, jamais deux fois le même.
-- Maximum 8 remarques, les plus graves d'abord.
-- Si le document est cohérent, dis-le et renvoie une liste vide.
-- Écris en français, phrases courtes, sans jargon.
+- Tu ne réécris jamais le rapport : tu signales et tu proposes une correction courte.
+- Une remarque = un problème réel. Jamais deux fois le même.
+- Maximum 10 remarques, les plus graves d'abord.
+- Si tout est propre, dis-le franchement et ne cherche pas de défaut pour en trouver un.
+- Français, phrases courtes, sans jargon.
 
 Réponds UNIQUEMENT par un objet JSON valide :
 {
-  "score": <entier 0-100, 100 = prêt à envoyer>,
+  "score": <entier 0-100, note globale>,
+  "coherence": <entier 0-100, grille A>,
+  "form": <entier 0-100, grille B>,
   "summary": "<une phrase de verdict>",
   "findings": [
     {
       "severity": "error" | "warning" | "info",
-      "section": "<titre exact de la section concernée, ou 'Général'>",
+      "category": "fond" | "forme",
+      "section": "<titre exact de la section, ou 'Général'>",
       "message": "<ce qui ne va pas>",
-      "suggestion": "<ce qu'il faut faire, en une phrase>"
+      "suggestion": "<la correction, en une phrase>"
     }
   ]
 }`;
@@ -83,12 +104,19 @@ function buildDocument(data: z.infer<typeof inputSchema>): string {
   return lines.join("\n");
 }
 
+const clampScore = (value: unknown, fallback: number): number => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(n)));
+};
+
 function normalize(raw: any): ReviewResult {
   const findings: ReviewFinding[] = Array.isArray(raw?.findings)
     ? raw.findings
-        .slice(0, 8)
+        .slice(0, 10)
         .map((f: any) => ({
           severity: f?.severity === "error" || f?.severity === "warning" ? f.severity : "info",
+          category: f?.category === "forme" ? "forme" : "fond",
           section: typeof f?.section === "string" && f.section.trim() ? f.section.trim() : "Général",
           message: typeof f?.message === "string" ? f.message.trim() : "",
           suggestion: typeof f?.suggestion === "string" ? f.suggestion.trim() : "",
@@ -96,13 +124,13 @@ function normalize(raw: any): ReviewResult {
         .filter((f: ReviewFinding) => f.message.length > 0)
     : [];
 
-  const score = Math.max(
-    0,
-    Math.min(100, Number.isFinite(Number(raw?.score)) ? Math.round(Number(raw.score)) : 60),
-  );
+  const coherence = clampScore(raw?.coherence, clampScore(raw?.score, 60));
+  const form = clampScore(raw?.form, clampScore(raw?.score, 60));
 
   return {
-    score,
+    score: clampScore(raw?.score, Math.round((coherence + form) / 2)),
+    coherence,
+    form,
     summary:
       typeof raw?.summary === "string" && raw.summary.trim()
         ? raw.summary.trim()
@@ -112,8 +140,8 @@ function normalize(raw: any): ReviewResult {
 }
 
 /**
- * Relit l'intégralité d'un rapport et signale les incohérences.
- * Ne modifie jamais le document : c'est un contrôle, pas une réécriture.
+ * Relit l'intégralité d'un rapport : cohérence du fond ET qualité de forme.
+ * Ne modifie jamais le document.
  */
 export const reviewReportDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -125,13 +153,17 @@ export const reviewReportDraft = createServerFn({ method: "POST" })
     if (document.replace(/\s/g, "").length < 40) {
       return {
         score: 0,
+        coherence: 0,
+        form: 0,
         summary: "Le document est presque vide : rien à contrôler pour le moment.",
         findings: [
           {
             severity: "error",
+            category: "fond",
             section: "Général",
             message: "Le rapport ne contient pas encore de contenu exploitable.",
-            suggestion: "Ajoutez au moins une section avec ses observations avant de lancer le contrôle.",
+            suggestion:
+              "Ajoutez au moins une section avec ses observations avant de lancer le contrôle.",
           },
         ],
       };
