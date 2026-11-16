@@ -41,6 +41,7 @@ import {
 import { listActionMembers } from "@/lib/actions/actions.functions";
 import { PlanSummaryDialog } from "@/components/planning/PlanSummaryDialog";
 import { PlanDocumentDialog } from "@/components/planning/PlanDocumentDialog";
+import { PlanDraftDialog } from "@/components/planning/PlanDraftDialog";
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({
@@ -120,6 +121,7 @@ function PlanningPage() {
   const [editing, setEditing] = useState<PlanItem | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [planDocOpen, setPlanDocOpen] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
 
   const validRange = !!from && !!to && from <= to;
 
@@ -188,17 +190,22 @@ function PlanningPage() {
           </p>
         </div>
 
-        <Button
-          className="ml-auto"
-          size="sm"
-          onClick={() => {
-            setEditing(null);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Planifier un travail
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setDraftOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Planifier avec l'assistant
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Planifier un travail
+          </Button>
+        </div>
       </div>
 
       {/* La période */}
@@ -359,6 +366,14 @@ function PlanningPage() {
         onOpenChange={setPlanDocOpen}
         initialFrom={from}
         initialTo={to}
+      />
+
+      <PlanDraftDialog
+        open={draftOpen}
+        onOpenChange={setDraftOpen}
+        initialFrom={from}
+        initialTo={to}
+        onCreated={invalidate}
       />
     </div>
   );

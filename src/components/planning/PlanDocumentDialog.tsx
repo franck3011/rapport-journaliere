@@ -29,7 +29,7 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;");
 
 /** Ouvre une fenêtre propre et lance l'impression du document. */
-function printNarrative(doc: PlanNarrative, period: string) {
+export function printNarrative(doc: PlanNarrative, period: string) {
   const win = window.open("", "_blank", "width=820,height=900");
   if (!win) {
     toast.error("Autorisez les fenêtres pop-up pour imprimer.");

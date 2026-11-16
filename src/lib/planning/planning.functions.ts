@@ -540,3 +540,151 @@ export const createPlanReportFromNarrative = createServerFn({ method: "POST" })
 
     return { id: report.id };
   });
+
+/* ------------------- structuration d'une intention écrite ------------------- */
+
+export type StructuredPlan = {
+  document: PlanNarrative;
+  travaux: { titre: string; details: string; date: string }[];
+};
+
+const STRUCTURE_SYSTEM = `Tu transformes une intention écrite par un responsable en plan de travail structuré.
+Tu reçois une INTENTION libre et une PÉRIODE (du / au).
+
+Règles absolues :
+- Tu ne inventes RIEN qui ne soit pas dans l'intention : pas de chiffre, pas de nom,
+  pas de tâche sortie de nulle part.
+- Tu peux préciser, ordonner et regrouper ce qui est déjà dit.
+- Chaque travail doit avoir une date comprise dans la période fournie.
+- Entre 3 et 12 travaux. Si l'intention est courte, moins de travaux.
+
+Tu produis DEUX choses :
+1. un document lisible par un client (titre, introduction, sections, conclusion) ;
+2. la liste des travaux correspondants, avec une date chacun.
+
+Réponds UNIQUEMENT par un objet JSON valide :
+{
+  "document": {
+    "title": "<titre du plan>",
+    "intro": "<2 à 3 phrases qui annoncent l'objectif de la période>",
+    "sections": [{ "title": "<titre>", "description": "<une phrase ou vide>", "bullets": ["<puce>"] }],
+    "conclusion": "<1 à 2 phrases>"
+  },
+  "travaux": [
+    { "titre": "<ce qui sera fait>", "details": "<précisions utiles ou vide>", "date": "AAAA-MM-JJ" }
+  ]
+}`;
+
+export const structurePlanFromText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        text: z.string().trim().min(10, "Décrivez au moins une phrase").max(6000),
+        from: dateSchema,
+        to: dateSchema,
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }): Promise<StructuredPlan> => {
+    const { callAI, parseJsonLoose } = await import("@/lib/ai-gateway.server");
+
+    const raw = await callAI({
+      system: STRUCTURE_SYSTEM,
+      messages: [
+        {
+          role: "user",
+          content: JSON.stringify({
+            intention: data.text,
+            periode: { du: data.from, au: data.to },
+          }),
+        },
+      ],
+      json: true,
+      temperature: 0.2,
+    });
+
+    const parsed = parseJsonLoose<any>(raw);
+    const doc = parsed?.document ?? {};
+
+    const sections = Array.isArray(doc.sections)
+      ? doc.sections
+          .slice(0, 6)
+          .map((s: any) => ({
+            title: String(s?.title ?? "Section"),
+            description: String(s?.description ?? ""),
+            bullets: (Array.isArray(s?.bullets) ? s.bullets : [])
+              .map((b: any) => String(b ?? "").trim())
+              .filter(Boolean)
+              .slice(0, 20),
+          }))
+          .filter((s: any) => s.bullets.length > 0)
+      : [];
+
+    if (!doc.intro || sections.length === 0) {
+      throw new Error("L'assistant n'a pas produit de plan exploitable. Reformulez votre résumé.");
+    }
+
+    const clamp = (day: string): string => {
+      const value = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : data.from;
+      return value < data.from ? data.from : value > data.to ? data.to : value;
+    };
+
+    const travaux = (Array.isArray(parsed?.travaux) ? parsed.travaux : [])
+      .slice(0, 12)
+      .map((t: any) => ({
+        titre: String(t?.titre ?? "").trim(),
+        details: String(t?.details ?? "").trim(),
+        date: clamp(String(t?.date ?? data.from)),
+      }))
+      .filter((t: any) => t.titre.length > 1);
+
+    return {
+      document: {
+        title: String(doc.title ?? "Plan de la période"),
+        intro: String(doc.intro),
+        conclusion: String(doc.conclusion ?? ""),
+        sections,
+      },
+      travaux,
+    };
+  });
+
+export const createPlanItemsBulk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        items: z
+          .array(
+            z.object({
+              titre: z.string().trim().min(2).max(200),
+              details: z.string().max(2000).default(""),
+              date: dateSchema,
+            }),
+          )
+          .min(1)
+          .max(20),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const supabase: any = context.supabase;
+    const userId: string = context.userId;
+    const companyId = await myCompanyId(supabase, userId);
+    if (!companyId) throw new Error("Vous devez appartenir à une entreprise.");
+
+    const { error } = await supabase.from("plan_items").insert(
+      data.items.map((item) => ({
+        company_id: companyId,
+        title: item.titre,
+        details: item.details,
+        planned_date: item.date,
+        owner_id: null,
+        priority: "normal",
+        created_by: userId,
+      })),
+    );
+    if (error) throw new Error(error.message);
+    return { count: data.items.length };
+  });
