@@ -1,9 +1,10 @@
 // Calculs et formatage pour les documents financiers (budget, devis, proforma…)
 
-export type DocType = "report" | "budget" | "quote" | "proforma" | "invoice";
+export type DocType = "report" | "plan" | "budget" | "quote" | "proforma" | "invoice";
 
 export const DOC_TYPE_LABEL: Record<DocType, string> = {
   report: "Rapport",
+  plan: "Planning",
   budget: "Budget",
   quote: "Devis",
   proforma: "Facture proforma",
@@ -12,6 +13,7 @@ export const DOC_TYPE_LABEL: Record<DocType, string> = {
 
 export const DOC_TYPE_PREFIX: Record<DocType, string> = {
   report: "RAP",
+  plan: "PLN",
   budget: "BUD",
   quote: "DEV",
   proforma: "PRO",

@@ -475,6 +475,7 @@ export const createPlanReportFromNarrative = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z
       .object({
+        reportDate: dateSchema.optional(),
         narrative: z.object({
           title: z.string().min(1).max(300),
           intro: z.string().max(8000),
@@ -503,7 +504,8 @@ export const createPlanReportFromNarrative = createServerFn({ method: "POST" })
       .from("reports")
       .insert({
         author_id: userId,
-        report_date: today,
+        report_date: data.reportDate ?? today,
+        doc_type: "plan",
         title: doc.title,
         intro: doc.intro,
         conclusion: doc.conclusion,
@@ -687,4 +689,31 @@ export const createPlanItemsBulk = createServerFn({ method: "POST" })
     );
     if (error) throw new Error(error.message);
     return { count: data.items.length };
+  });
+
+/* ------------- liste des plannings (ce sont des rapports doc_type="plan") ------------- */
+
+export type PlanReportRow = {
+  id: string;
+  title: string;
+  report_date: string;
+  intro: string;
+};
+
+export const listPlanReports = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PlanReportRow[]> => {
+    const supabase: any = context.supabase;
+    const { data } = await supabase
+      .from("reports")
+      .select("id, title, report_date, intro")
+      .eq("doc_type", "plan")
+      .order("report_date", { ascending: false })
+      .limit(100);
+    return ((data ?? []) as any[]).map((row) => ({
+      id: row.id,
+      title: row.title ?? "",
+      report_date: row.report_date,
+      intro: row.intro ?? "",
+    }));
   });
