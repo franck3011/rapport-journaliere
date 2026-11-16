@@ -249,14 +249,70 @@ export async function executeStep(
       const doc = parseJsonLoose<any>(raw);
       const sections = Array.isArray(doc.sections) ? doc.sections : [];
       if (!sections.length && !doc.intro) throw new Error("La rédaction est vide.");
-      return {
-        output: {
-          title: String(doc.title || run.title),
-          intro: String(doc.intro ?? ""),
-          sections: sections.slice(0, 8).map((s: any) => ({ title: String(s.title ?? ""), text: String(s.text ?? "") })),
-          conclusion: String(doc.conclusion ?? ""),
-        },
+
+      type Draft = {
+        title: string;
+        intro: string;
+        sections: { title: string; text: string }[];
+        conclusion: string;
       };
+
+      const toDraft = (value: any): Draft => ({
+        title: String(value?.title || run.title),
+        intro: String(value?.intro ?? ""),
+        sections: (Array.isArray(value?.sections) ? value.sections : [])
+          .slice(0, 8)
+          .map((s: any) => ({ title: String(s?.title ?? ""), text: String(s?.text ?? "") })),
+        conclusion: String(value?.conclusion ?? ""),
+      });
+
+      let draft = toDraft(doc);
+
+      // Portillon du contrôleur : la rédaction est relue avant d'être rendue.
+      // Si elle n'est pas propre, une seule correction est tentée, puis re-contrôle.
+      const { reviewDocument } = await import("../reports/review.server");
+      const toReview = (value: Draft) => ({
+        title: value.title,
+        intro: value.intro,
+        conclusion: value.conclusion,
+        sections: value.sections.map((section) => ({
+          title: section.title,
+          description: "",
+          bullets: section.text.trim() ? [section.text] : [],
+        })),
+      });
+
+      let controle = await reviewDocument(toReview(draft));
+
+      if (controle.score < 70 && controle.findings.length > 0) {
+        try {
+          const correctedRaw = await callAI({
+            json: true,
+            system:
+              "Tu corriges une note administrative. Tu ne changes AUCUN fait, AUCUN chiffre, AUCUN nom. Tu corriges uniquement les points listés (orthographe, style, incohérences signalées). Réponds en JSON avec la même structure : {\"title\", \"intro\", \"sections\": [{\"title\", \"text\"}], \"conclusion\"}.",
+            messages: [
+              {
+                role: "user",
+                content: JSON.stringify({
+                  brouillon: draft,
+                  points_a_corriger: controle.findings.map((f) => ({
+                    section: f.section,
+                    probleme: f.message,
+                    correction: f.suggestion,
+                  })),
+                }).slice(0, 60000),
+              },
+            ],
+            temperature: 0.1,
+          });
+          draft = toDraft(parseJsonLoose<any>(correctedRaw));
+          controle = await reviewDocument(toReview(draft));
+        } catch {
+          // En cas d'échec de la correction, on conserve la rédaction initiale.
+        }
+      }
+
+      return { output: { ...draft, controle } };
     }
     case "generate": {
       if (st.quality?.statut === "REJETÉ") throw new Error("Publication refusée : contrôle qualité rejeté.");
