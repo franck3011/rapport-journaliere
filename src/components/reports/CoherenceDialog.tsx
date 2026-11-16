@@ -134,6 +134,12 @@ export function CoherenceDialog({
               </div>
 
               <p className="mt-3 text-sm text-muted-foreground">{result.summary}</p>
+              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {result.verified
+                  ? "Double lecture : remarques vérifiées et filtrées."
+                  : "Analyse simple : la seconde lecture n'a pas pu être faite."}
+              </p>
             </div>
 
             {result.findings.length === 0 ? (

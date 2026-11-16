@@ -22,6 +22,8 @@ export type ReviewResult = {
   form: number;
   summary: string;
   findings: ReviewFinding[];
+  /** true si la seconde lecture a validé les remarques */
+  verified: boolean;
 };
 
 const SYSTEM = `Tu es le CONTRÔLEUR D'UN RAPPORT PROFESSIONNEL.
@@ -70,6 +72,20 @@ Réponds UNIQUEMENT par un objet JSON valide :
   ]
 }`;
 
+const VERIFIER = `Tu es le VÉRIFICATEUR. Un premier agent a relu ce rapport et produit les remarques ci-dessous.
+Ta seule mission : ne garder que ce qui est RÉELLEMENT justifié par le document.
+
+Élimine sans hésiter :
+- les remarques approximatives ou supposées (« il manque peut-être… ») ;
+- celles qui reprochent un choix d'auteur légitime (ton direct, phrase courte, style télégraphique volontaire) ;
+- les doublons et les reformulations d'un même problème.
+
+Conserve et reformule plus précisément ce qui est vrai. Puis ajuste les notes
+pour qu'elles correspondent à l'état réel du document.
+
+Réponds UNIQUEMENT par le même objet JSON :
+{ "score": <0-100>, "coherence": <0-100>, "form": <0-100>, "summary": "<verdict>", "findings": [ ... ] }`;
+
 const sectionSchema = z.object({
   title: z.string().max(200),
   description: z.string().max(2000).optional().default(""),
@@ -110,7 +126,7 @@ const clampScore = (value: unknown, fallback: number): number => {
   return Math.max(0, Math.min(100, Math.round(n)));
 };
 
-function normalize(raw: any): ReviewResult {
+function normalize(raw: any, verified: boolean): ReviewResult {
   const findings: ReviewFinding[] = Array.isArray(raw?.findings)
     ? raw.findings
         .slice(0, 10)
@@ -136,6 +152,7 @@ function normalize(raw: any): ReviewResult {
         ? raw.summary.trim()
         : "Analyse terminée.",
     findings,
+    verified,
   };
 }
 
@@ -155,6 +172,7 @@ export const reviewReportDraft = createServerFn({ method: "POST" })
         score: 0,
         coherence: 0,
         form: 0,
+        verified: false,
         summary: "Le document est presque vide : rien à contrôler pour le moment.",
         findings: [
           {
@@ -176,5 +194,28 @@ export const reviewReportDraft = createServerFn({ method: "POST" })
       temperature: 0.1,
     });
 
-    return normalize(parseJsonLoose<any>(raw));
+    const first = normalize(parseJsonLoose<any>(raw), false);
+
+    // Seconde lecture : le vérificateur filtre ses propres remarques.
+    // En cas d'échec, on renvoie la première analyse plutôt que rien.
+    try {
+      const verifiedRaw = await callAI({
+        system: VERIFIER,
+        messages: [
+          {
+            role: "user",
+            content: `${document}\n\n--- REMARQUES À VÉRIFIER ---\n${JSON.stringify(
+              first.findings,
+              null,
+              2,
+            )}`,
+          },
+        ],
+        json: true,
+        temperature: 0,
+      });
+      return normalize(parseJsonLoose<any>(verifiedRaw), true);
+    } catch {
+      return first;
+    }
   });
