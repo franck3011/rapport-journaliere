@@ -316,6 +316,26 @@ export type PlanNarrative = {
   sections: { title: string; description: string; bullets: string[] }[];
 };
 
+const PLAN_SYSTEM = `Tu rédiges LE PLAN D'UNE PÉRIODE : ce qui VA être fait, pas ce qui a été fait.
+Tu reçois des FAITS : la liste des travaux prévus avec leur responsable, leurs dates et leur priorité.
+Tu ne peux RIEN inventer : aucun chiffre, aucun nom, aucun travail absent des faits.
+
+Structure attendue :
+- une introduction de 2 à 3 phrases qui annonce l'objectif de la période
+  (exemple : « Cette semaine est consacrée à la maintenance de l'ensemble du parc informatique. ») ;
+- 2 à 4 sections qui regroupent les travaux par thème ou par jour, avec un titre explicite ;
+- chaque puce décrit un travail : ce qui sera fait, par qui, quand ;
+- une conclusion de 1 à 2 phrases sur ce qui conditionne la réussite.
+
+Ton : direct, professionnel, au futur ou au présent de planification. Français correct.
+
+Réponds UNIQUEMENT par un objet JSON valide :
+{
+  "title": "<titre du plan>",
+  "intro": "<paragraphe>",
+  "sections": [{ "title": "<titre>", "description": "<une phrase ou vide>", "bullets": ["<puce>"] }],
+  "conclusion": "<paragraphe>"
+}`;
 const NARRATIVE_SYSTEM = `Tu rédiges le bilan d'une période de planning pour un rapport professionnel.
 Tu reçois des FAITS : des compteurs et la liste des travaux planifiés.
 Tu ne peux RIEN inventer : aucun chiffre, aucun nom, aucun événement absent des faits.
@@ -340,7 +360,9 @@ Réponds UNIQUEMENT par un objet JSON valide :
 
 export const generatePlanNarrative = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ from: dateSchema, to: dateSchema }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ from: dateSchema, to: dateSchema, mode: z.enum(["bilan", "plan"]).default("bilan") }).parse(data),
+  )
   .handler(async ({ data, context }): Promise<PlanNarrative> => {
     const supabase: any = context.supabase;
     const userId: string = context.userId;
@@ -415,7 +437,7 @@ export const generatePlanNarrative = createServerFn({ method: "POST" })
     };
 
     const raw = await callAI({
-      system: NARRATIVE_SYSTEM,
+      system: data.mode === "plan" ? PLAN_SYSTEM : NARRATIVE_SYSTEM,
       messages: [{ role: "user", content: JSON.stringify(facts).slice(0, 40000) }],
       json: true,
       temperature: 0.3,

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -12,11 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, FileText, Loader2, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, CheckCircle2, FileText, Loader2, Printer, Sparkles } from "lucide-react";
 import {
   createPlanReportFromNarrative,
   createPlanReviewReport,
   generatePlanNarrative,
+  listPlanItems,
   type PlanItem,
   type PlanNarrative,
 } from "@/lib/planning/planning.functions";
@@ -25,25 +28,39 @@ import { summarizePlan, frDate } from "@/lib/planning/summary";
 export function PlanSummaryDialog({
   open,
   onOpenChange,
-  items,
-  from,
-  to,
+  initialFrom,
+  initialTo,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
-  items: PlanItem[];
-  from: string;
-  to: string;
+  initialFrom: string;
+  initialTo: string;
 }) {
   const navigate = useNavigate();
+  const listFn = useServerFn(listPlanItems);
   const mechanicalFn = useServerFn(createPlanReviewReport);
   const generateFn = useServerFn(generatePlanNarrative);
   const createFromNarrativeFn = useServerFn(createPlanReportFromNarrative);
 
+  const [from, setFrom] = useState(initialFrom);
+  const [to, setTo] = useState(initialTo);
   const [narrative, setNarrative] = useState<PlanNarrative | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+    setFrom(initialFrom);
+    setTo(initialTo);
+    setNarrative(null);
+  }, [open, initialFrom, initialTo]);
+
+  const { data: items = [], isFetching } = useQuery({
+    queryKey: ["plan-items-summary", from, to],
+    queryFn: () => listFn({ data: { from, to } }),
+    enabled: open && !!from && !!to && from <= to,
+  });
+
   const today = new Date().toISOString().slice(0, 10);
-  const summary = useMemo(() => summarizePlan(items, today), [items, today]);
+  const summary = useMemo(() => summarizePlan(items as PlanItem[], today), [items, today]);
 
   function goToReport(id: string) {
     toast.success("Rapport créé");
@@ -59,7 +76,7 @@ export function PlanSummaryDialog({
   });
 
   const generate = useMutation({
-    mutationFn: () => generateFn({ data: { from, to } }),
+    mutationFn: () => generateFn({ data: { from, to, mode: "bilan" } }),
     onSuccess: (result) => setNarrative(result),
     onError: (e: any) => toast.error(e?.message ?? "Génération impossible"),
   });
@@ -71,13 +88,10 @@ export function PlanSummaryDialog({
   });
 
   const tone =
-    summary.rate >= 80
-      ? "bg-emerald-500"
-      : summary.rate >= 50
-        ? "bg-amber-500"
-        : "bg-destructive";
+    summary.rate >= 80 ? "bg-emerald-500" : summary.rate >= 50 ? "bg-amber-500" : "bg-destructive";
 
   const busy = mechanical.isPending || generate.isPending || createFromNarrative.isPending;
+  const validRange = !!from && !!to && from <= to;
 
   return (
     <Dialog
@@ -91,15 +105,47 @@ export function PlanSummaryDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            {narrative ? "Aperçu du bilan rédigé" : "Bilan de la période"}
+            {narrative ? "Aperçu du bilan" : "Bilan de la période"}
           </DialogTitle>
           <DialogDescription>
-            Du {frDate(from)} au {frDate(to)} — ce qui était prévu, ce qui a été fait.
+            Choisis les dates du bilan — elles sont indépendantes de la période affichée.
           </DialogDescription>
         </DialogHeader>
 
+        {/* Sélection des dates */}
+        {!narrative && (
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border p-3">
+            <div className="space-y-1">
+              <Label htmlFor="bilan-from" className="text-xs">Du</Label>
+              <Input
+                id="bilan-from"
+                type="date"
+                className="h-9 w-[150px]"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="bilan-to" className="text-xs">Au</Label>
+              <Input
+                id="bilan-to"
+                type="date"
+                className="h-9 w-[150px]"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </div>
+            {isFetching && <Loader2 className="mb-2 h-4 w-4 animate-spin text-muted-foreground" />}
+            {!validRange && (
+              <p className="mb-2 text-xs text-destructive">
+                La date de fin doit suivre la date de début.
+              </p>
+            )}
+          </div>
+        )}
+
         {narrative ? (
-          <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+          <div className="max-h-[55vh] space-y-4 overflow-y-auto pr-1">
             <h3 className="text-lg font-semibold leading-snug">{narrative.title}</h3>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
               {narrative.intro}
@@ -128,10 +174,6 @@ export function PlanSummaryDialog({
                 {narrative.conclusion}
               </p>
             )}
-            <p className="text-[11px] text-muted-foreground">
-              Texte produit par l'assistant à partir du planning réel. Tu pourras le modifier dans
-              l'éditeur avant de l'envoyer.
-            </p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -150,6 +192,7 @@ export function PlanSummaryDialog({
                 {summary.done} réalisé{summary.done > 1 ? "s" : ""} sur {summary.total} planifié
                 {summary.total > 1 ? "s" : ""}
                 {summary.cancelled > 0 ? ` · ${summary.cancelled} annulé(s)` : ""}
+                {summary.total === 0 ? " — aucun travail sur ces dates" : ""}
               </p>
             </div>
 
@@ -196,11 +239,6 @@ export function PlanSummaryDialog({
                 </div>
               )
             )}
-
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              L'assistant rédige le bilan à partir de ces faits : il ne peut pas inventer de
-              chiffre ni d'événement. Le rapport est créé en brouillon, tu le relis avant l'envoi.
-            </p>
           </div>
         )}
 
@@ -229,7 +267,7 @@ export function PlanSummaryDialog({
                 ) : (
                   <FileText className="mr-2 h-4 w-4" />
                 )}
-                Créer ce rapport
+                Créer le rapport
               </Button>
             </>
           ) : (
@@ -240,15 +278,16 @@ export function PlanSummaryDialog({
                 onClick={() => mechanical.mutate()}
                 disabled={busy || summary.total === 0}
               >
-                {mechanical.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
+                {mechanical.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Créer sans IA
               </Button>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
                 Fermer
               </Button>
-              <Button onClick={() => generate.mutate()} disabled={busy || summary.total === 0}>
+              <Button
+                onClick={() => generate.mutate()}
+                disabled={busy || summary.total === 0 || !validRange}
+              >
                 {generate.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

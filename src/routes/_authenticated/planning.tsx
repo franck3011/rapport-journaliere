@@ -24,7 +24,7 @@ import {
 import {
   CalendarDays,
   ChevronLeft,
-  ChevronRight,
+  ChevronRight, FileText,
   Loader2,
   Plus,
   Sparkles,
@@ -41,6 +41,7 @@ import {
 } from "@/lib/planning/planning.functions";
 import { listActionMembers } from "@/lib/actions/actions.functions";
 import { PlanSummaryDialog } from "@/components/planning/PlanSummaryDialog";
+import { PlanDocumentDialog } from "@/components/planning/PlanDocumentDialog";
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({
@@ -123,6 +124,7 @@ function PlanningPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PlanItem | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [planDocOpen, setPlanDocOpen] = useState(false);
 
   const range = useMemo(() => {
     if (view === "week") {
@@ -278,14 +280,20 @@ function PlanningPage() {
             </p>
           </div>
 
-          <Button
-            className="ml-auto"
-            onClick={() => setSummaryOpen(true)}
-            disabled={items.length === 0}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Rédiger le bilan de la période
-          </Button>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPlanDocOpen(true)}
+              disabled={items.length === 0}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Plan à imprimer
+            </Button>
+            <Button onClick={() => setSummaryOpen(true)} disabled={items.length === 0}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Bilan de la période
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -391,9 +399,15 @@ function PlanningPage() {
       <PlanSummaryDialog
         open={summaryOpen}
         onOpenChange={setSummaryOpen}
-        items={items}
-        from={range.from}
-        to={range.to}
+        initialFrom={range.from}
+        initialTo={range.to}
+      />
+
+      <PlanDocumentDialog
+        open={planDocOpen}
+        onOpenChange={setPlanDocOpen}
+        initialFrom={range.from}
+        initialTo={range.to}
       />
     </div>
   );
