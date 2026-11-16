@@ -23,8 +23,7 @@ import {
 } from "@/components/ui/select";
 import {
   CalendarDays,
-  ChevronLeft,
-  ChevronRight, FileText,
+  FileText,
   Loader2,
   Plus,
   Sparkles,
@@ -49,10 +48,10 @@ export const Route = createFileRoute("/_authenticated/planning")({
       { title: "Planning — DailyBrief" },
       {
         name: "description",
-        content: "Planifiez les travaux à venir et produisez le bilan de la période.",
+        content: "Planifiez les travaux d'une période et produisez le plan ou le bilan.",
       },
       { property: "og:title", content: "Planning — DailyBrief" },
-      { property: "og:description", content: "Les travaux à venir, période par période." },
+      { property: "og:description", content: "Les travaux d'une période, du plan au bilan." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -69,14 +68,7 @@ const startOfWeek = (d: Date) => {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day));
 };
 const startOfMonth = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
-
-const longDate = (day: string) =>
-  new Date(day + "T00:00:00Z").toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  });
+const endOfMonth = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
 
 const shortDate = (day: string) =>
   new Date(day + "T00:00:00Z").toLocaleDateString("fr-FR", {
@@ -85,10 +77,13 @@ const shortDate = (day: string) =>
     timeZone: "UTC",
   });
 
-function covers(item: PlanItem, dayIso: string): boolean {
-  const end = item.end_date ?? item.planned_date;
-  return item.planned_date <= dayIso && end >= dayIso;
-}
+const longDate = (day: string) =>
+  new Date(day + "T00:00:00Z").toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
 
 const STATUS_LABEL: Record<PlanStatus, string> = {
   planned: "Prévu",
@@ -119,26 +114,19 @@ function PlanningPage() {
   const deleteFn = useServerFn(deletePlanItem);
   const membersFn = useServerFn(listActionMembers);
 
-  const [view, setView] = useState<"week" | "month">("week");
-  const [anchor, setAnchor] = useState(() => new Date());
+  const [from, setFrom] = useState(() => iso(startOfWeek(new Date())));
+  const [to, setTo] = useState(() => iso(addDays(startOfWeek(new Date()), 6)));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PlanItem | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [planDocOpen, setPlanDocOpen] = useState(false);
 
-  const range = useMemo(() => {
-    if (view === "week") {
-      const from = startOfWeek(anchor);
-      return { from: iso(from), to: iso(addDays(from, 6)) };
-    }
-    const first = startOfMonth(anchor);
-    const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0));
-    return { from: iso(first), to: iso(last) };
-  }, [view, anchor]);
+  const validRange = !!from && !!to && from <= to;
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["plan-items", range.from, range.to],
-    queryFn: () => listFn({ data: { from: range.from, to: range.to } }),
+    queryKey: ["plan-items", from, to],
+    queryFn: () => listFn({ data: { from, to } }),
+    enabled: validRange,
   });
 
   const { data: members = [] } = useQuery({
@@ -166,36 +154,25 @@ function PlanningPage() {
 
   const today = iso(new Date());
 
-  /** Les jours de la période qui ont au moins un travail. */
-  const dayGroups = useMemo(() => {
-    const days: string[] = [];
-    let cursor = new Date(range.from + "T00:00:00Z");
-    const end = range.to;
-    while (iso(cursor) <= end) {
-      const day = iso(cursor);
-      const dayItems = items.filter((item) => covers(item, day));
-      if (dayItems.length > 0) days.push(day);
-      cursor = addDays(cursor, 1);
-    }
-    return days.map((day) => ({ day, items: items.filter((item) => covers(item, day)) }));
-  }, [items, range]);
-
-  function move(direction: -1 | 1) {
-    if (view === "week") setAnchor((d) => addDays(d, direction * 7));
-    else setAnchor((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + direction, 1)));
-  }
-
-  const periodLabel =
-    view === "week"
-      ? `Semaine du ${shortDate(range.from)} au ${shortDate(range.to)}`
-      : new Date(range.from + "T00:00:00Z").toLocaleDateString("fr-FR", {
-          month: "long",
-          year: "numeric",
-          timeZone: "UTC",
-        });
+  /** Une seule liste pour la période, triée par date de début. */
+  const sorted = useMemo(
+    () => [...items].sort((a, b) => a.planned_date.localeCompare(b.planned_date)),
+    [items],
+  );
 
   const done = items.filter((i) => i.status === "done").length;
   const rate = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
+
+  function preset(kind: "week" | "month") {
+    if (kind === "week") {
+      const start = startOfWeek(new Date());
+      setFrom(iso(start));
+      setTo(iso(addDays(start, 6)));
+    } else {
+      setFrom(iso(startOfMonth(new Date())));
+      setTo(iso(endOfMonth(new Date())));
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 px-4 py-6">
@@ -207,175 +184,149 @@ function PlanningPage() {
             Planning
           </h1>
           <p className="text-sm text-muted-foreground">
-            Ce qui doit être fait sur la période, et le bilan qui en découle.
+            Les travaux d'une période — puis son plan ou son bilan.
           </p>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border p-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => move(-1)}
-              aria-label="Période précédente"
-            >
-              <ChevronLeft className="h-4 w-4" />
+        <Button
+          className="ml-auto"
+          size="sm"
+          onClick={() => {
+            setEditing(null);
+            setDialogOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Planifier un travail
+        </Button>
+      </div>
+
+      {/* La période */}
+      <div className="space-y-3 rounded-xl border bg-card p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="period-from" className="text-xs">Du</Label>
+            <Input
+              id="period-from"
+              type="date"
+              className="h-9 w-[150px]"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="period-to" className="text-xs">Au</Label>
+            <Input
+              id="period-to"
+              type="date"
+              className="h-9 w-[150px]"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-1 pb-0.5">
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => preset("week")}>
+              Cette semaine
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs"
-              onClick={() => setAnchor(new Date())}
-            >
-              Aujourd'hui
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => move(1)}
-              aria-label="Période suivante"
-            >
-              <ChevronRight className="h-4 w-4" />
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => preset("month")}>
+              Ce mois
             </Button>
           </div>
 
-          <div className="flex rounded-lg border p-0.5">
-            {(["week", "month"] as const).map((v) => (
-              <Button
-                key={v}
-                size="sm"
-                variant={view === v ? "default" : "ghost"}
-                className="h-8 px-3 text-xs"
-                onClick={() => setView(v)}
-              >
-                {v === "week" ? "Semaine" : "Mois"}
-              </Button>
-            ))}
-          </div>
+          {isLoading && <Loader2 className="mb-1.5 h-4 w-4 animate-spin text-muted-foreground" />}
+        </div>
 
+        {!validRange ? (
+          <p className="text-xs text-destructive">La date de fin doit suivre la date de début.</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {items.length} travail{items.length > 1 ? "x" : ""} · {done} terminé
+            {done > 1 ? "s" : ""}
+            {items.length > 0 ? ` · ${rate} % réalisé` : ""}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           <Button
+            variant="outline"
             size="sm"
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
+            onClick={() => setPlanDocOpen(true)}
+            disabled={items.length === 0}
           >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Planifier
+            <FileText className="h-4 w-4 mr-2" />
+            Plan à imprimer
+          </Button>
+          <Button size="sm" onClick={() => setSummaryOpen(true)} disabled={items.length === 0}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Bilan de la période
           </Button>
         </div>
       </div>
 
-      {/* Bandeau de la période + assistant */}
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-0">
-            <p className="text-[15px] font-semibold capitalize">{periodLabel}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {items.length} travail{items.length > 1 ? "x" : ""} · {done} terminé
-              {done > 1 ? "s" : ""}
-              {items.length > 0 ? ` · ${rate} % réalisé` : ""}
-            </p>
-          </div>
-
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setPlanDocOpen(true)}
-              disabled={items.length === 0}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Plan à imprimer
-            </Button>
-            <Button onClick={() => setSummaryOpen(true)} disabled={items.length === 0}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Bilan de la période
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Liste groupée par jour */}
+      {/* Liste unique de la période */}
       {isLoading ? (
         <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement…
         </div>
-      ) : dayGroups.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed py-16 text-center">
           <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/60" />
-          <p className="mt-3 text-sm font-medium">Aucun travail planifié sur cette période</p>
+          <p className="mt-3 text-sm font-medium">Aucun travail sur cette période</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Ajoutez ce qui doit être fait, puis générez le bilan en fin de période.
+            Ajoutez ce qui doit être fait, puis générez le plan ou le bilan.
           </p>
-          <Button
-            className="mt-4"
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Planifier un travail
-          </Button>
         </div>
       ) : (
-        <div className="space-y-5">
-          {dayGroups.map(({ day, items: dayItems }) => (
-            <section key={day}>
-              <h2
-                className={`mb-2 text-[12px] font-semibold uppercase tracking-wide ${
-                  day === today ? "text-primary" : "text-muted-foreground"
-                }`}
+        <div className="space-y-2">
+          {sorted.map((item) => {
+            const spans = item.end_date && item.end_date !== item.planned_date;
+            return (
+              <div
+                key={item.id}
+                className={`flex items-start gap-3 rounded-lg border border-l-2 bg-card px-3 py-2.5 ${PRIORITY_CLASS[item.priority]}`}
               >
-                {longDate(day)}
-                {day === today ? " · aujourd'hui" : ""}
-              </h2>
+                <div className="w-20 shrink-0 pt-0.5">
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                    {shortDate(item.planned_date)}
+                  </p>
+                  {spans && (
+                    <p className="text-[10px] text-muted-foreground">
+                      → {shortDate(item.end_date!)}
+                    </p>
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                {dayItems.map((item) => {
-                  const spans = item.end_date && item.end_date !== item.planned_date;
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-start gap-3 rounded-lg border border-l-2 bg-card px-3 py-2.5 ${PRIORITY_CLASS[item.priority]}`}
-                    >
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 text-left"
-                        onClick={() => {
-                          setEditing(item);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <p
-                          className={`truncate text-sm font-medium ${
-                            item.status === "done" ? "text-muted-foreground line-through" : ""
-                          }`}
-                        >
-                          {item.title}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {item.owner_name}
-                          {spans ? ` · jusqu'au ${shortDate(item.end_date!)}` : ""}
-                          {item.details ? ` · ${item.details}` : ""}
-                        </p>
-                      </button>
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => {
+                    setEditing(item);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <p
+                    className={`truncate text-sm font-medium ${
+                      item.status === "done" ? "text-muted-foreground line-through" : ""
+                    }`}
+                  >
+                    {item.title}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {item.owner_name}
+                    {item.details ? ` · ${item.details}` : ""}
+                  </p>
+                </button>
 
-                      <span
-                        className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASS[item.status]}`}
-                      >
-                        {STATUS_LABEL[item.status]}
-                      </span>
-                    </div>
-                  );
-                })}
+                <span
+                  className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASS[item.status]}`}
+                >
+                  {STATUS_LABEL[item.status]}
+                </span>
               </div>
-            </section>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -399,15 +350,15 @@ function PlanningPage() {
       <PlanSummaryDialog
         open={summaryOpen}
         onOpenChange={setSummaryOpen}
-        initialFrom={range.from}
-        initialTo={range.to}
+        initialFrom={from}
+        initialTo={to}
       />
 
       <PlanDocumentDialog
         open={planDocOpen}
         onOpenChange={setPlanDocOpen}
-        initialFrom={range.from}
-        initialTo={range.to}
+        initialFrom={from}
+        initialTo={to}
       />
     </div>
   );
