@@ -9,7 +9,10 @@ import type {
   ReportListItem,
 } from "./reports.types";
 
-const IMAGE_URL_TTL = 5 * 60; // Leave time to read before exporting or opening attachments.
+// Les images s'affichaient puis disparaissaient : 5 minutes était trop court
+// dès qu'un rapport restait ouvert. Une heure couvre une session de lecture
+// normale, et l'URL n'est jamais exposée hors du compte connecté.
+const IMAGE_URL_TTL = 60 * 60;
 const ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 const MAX_SHARE_DAYS = 30; // durée max d'un lien de partage public
 
