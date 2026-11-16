@@ -51,6 +51,7 @@ export function PlanDraftDialog({
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
   const [result, setResult] = useState<StructuredPlan | null>(null);
+  const [created, setCreated] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -58,6 +59,7 @@ export function PlanDraftDialog({
     setFrom(initialFrom);
     setTo(initialTo);
     setResult(null);
+    setCreated(false);
   }, [open, initialFrom, initialTo]);
 
   const structure = useMutation({
@@ -69,9 +71,9 @@ export function PlanDraftDialog({
   const createItems = useMutation({
     mutationFn: () => bulkFn({ data: { items: result!.travaux } }),
     onSuccess: ({ count }) => {
-      toast.success(`${count} travail(x) planifié(s)`);
+      toast.success(`${count} travail(x) ajouté(s) au planning`);
+      setCreated(true);
       onCreated();
-      onOpenChange(false);
     },
     onError: (e: any) => toast.error(e?.message ?? "Création impossible"),
   });
@@ -156,6 +158,12 @@ export function PlanDraftDialog({
           </div>
         ) : (
           <div className="space-y-4">
+            {created && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+                Les travaux ont été ajoutés au planning. Le document reste affiché : tu peux
+                l'imprimer ou l'enregistrer comme rapport.
+              </div>
+            )}
             <div className="max-h-[45vh] overflow-y-auto rounded-lg border bg-white p-5 text-foreground dark:bg-card">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 {period}
@@ -257,14 +265,21 @@ export function PlanDraftDialog({
                 )}
                 Enregistrer comme rapport
               </Button>
-              <Button onClick={() => createItems.mutate()} disabled={busy || result.travaux.length === 0}>
-                {createItems.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <ListPlus className="mr-2 h-4 w-4" />
-                )}
-                Créer les travaux
-              </Button>
+              {created ? (
+                <Button onClick={() => onOpenChange(false)}>Fermer</Button>
+              ) : (
+                <Button
+                  onClick={() => createItems.mutate()}
+                  disabled={busy || result.travaux.length === 0}
+                >
+                  {createItems.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ListPlus className="mr-2 h-4 w-4" />
+                  )}
+                  Créer les travaux
+                </Button>
+              )}
             </>
           )}
         </DialogFooter>

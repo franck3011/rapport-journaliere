@@ -25,6 +25,7 @@ import {
   CalendarDays,
   FileText,
   Loader2,
+  Pencil,
   Plus,
   Sparkles,
   Trash2,
@@ -331,6 +332,34 @@ function PlanningPage() {
                 >
                   {STATUS_LABEL[item.status]}
                 </span>
+
+                <div className="flex shrink-0 items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Modifier"
+                    title="Modifier"
+                    onClick={() => {
+                      setEditing(item);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Supprimer"
+                    title="Supprimer"
+                    onClick={() => {
+                      if (window.confirm(`Supprimer « ${item.title} » ?`)) remove.mutate(item.id);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
               </div>
             );
           })}
