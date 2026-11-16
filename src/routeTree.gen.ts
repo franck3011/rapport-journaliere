@@ -48,6 +48,7 @@ import { Route as AuthenticatedMailSettingsRouteImport } from './routes/_authent
 import { Route as AuthenticatedMinutesIndexRouteImport } from './routes/_authenticated/minutes.index'
 import { Route as AuthenticatedMinutesIdRouteImport } from './routes/_authenticated/minutes.$id'
 import { Route as AuthenticatedMinutesDashboardRouteImport } from './routes/_authenticated/minutes.dashboard'
+import { Route as AuthenticatedPlanningIdRouteImport } from './routes/_authenticated/planning.$id'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects.new'
@@ -60,7 +61,9 @@ import { Route as AuthenticatedReportsNewRouteImport } from './routes/_authentic
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
 import { Route as AuthenticatedTasksIdRouteImport } from './routes/_authenticated/tasks.$id'
 import { Route as AuthenticatedTasksNewRouteImport } from './routes/_authenticated/tasks.new'
+import { Route as SharePlanTokenRouteImport } from './routes/share/plan.$token'
 import { Route as AuthenticatedCompanyEmployeesIdRouteImport } from './routes/_authenticated/company.employees.$id'
+import { Route as AuthenticatedPlanningIdEditRouteImport } from './routes/_authenticated/planning.$id.edit'
 import { Route as AuthenticatedReportsIdIndexRouteImport } from './routes/_authenticated/reports.$id.index'
 import { Route as AuthenticatedReportsIdEditRouteImport } from './routes/_authenticated/reports.$id.edit'
 import { Route as ApiPublicActionsRemindersRouteImport } from './routes/api/public/actions/reminders'
@@ -279,6 +282,11 @@ const AuthenticatedMinutesDashboardRoute =
     path: '/minutes/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPlanningIdRoute = AuthenticatedPlanningIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedPlanningRoute,
+} as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -345,11 +353,22 @@ const AuthenticatedTasksNewRoute = AuthenticatedTasksNewRouteImport.update({
   path: '/tasks/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const SharePlanTokenRoute = SharePlanTokenRouteImport.update({
+  id: '/share/plan/$token',
+  path: '/share/plan/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCompanyEmployeesIdRoute =
   AuthenticatedCompanyEmployeesIdRouteImport.update({
     id: '/employees/$id',
     path: '/employees/$id',
     getParentRoute: () => AuthenticatedCompanyRoute,
+  } as any)
+const AuthenticatedPlanningIdEditRoute =
+  AuthenticatedPlanningIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedPlanningIdRoute,
   } as any)
 const AuthenticatedReportsIdIndexRoute =
   AuthenticatedReportsIdIndexRouteImport.update({
@@ -403,7 +422,7 @@ export interface FileRoutesByFullPath {
   '/company': typeof AuthenticatedCompanyRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/objectives': typeof AuthenticatedObjectivesRoute
-  '/planning': typeof AuthenticatedPlanningRoute
+  '/planning': typeof AuthenticatedPlanningRouteWithChildren
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -424,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/mail/settings': typeof AuthenticatedMailSettingsRoute
   '/minutes/$id': typeof AuthenticatedMinutesIdRoute
   '/minutes/dashboard': typeof AuthenticatedMinutesDashboardRoute
+  '/planning/$id': typeof AuthenticatedPlanningIdRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/reports/$id': typeof AuthenticatedReportsIdRouteWithChildren
@@ -433,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/reports/new': typeof AuthenticatedReportsNewRoute
   '/tasks/$id': typeof AuthenticatedTasksIdRoute
   '/tasks/new': typeof AuthenticatedTasksNewRoute
+  '/share/plan/$token': typeof SharePlanTokenRoute
   '/ai-center/': typeof AuthenticatedAiCenterIndexRoute
   '/company/': typeof AuthenticatedCompanyIndexRoute
   '/documents/': typeof AuthenticatedDocumentsIndexRoute
@@ -444,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/reports/': typeof AuthenticatedReportsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/company/employees/$id': typeof AuthenticatedCompanyEmployeesIdRoute
+  '/planning/$id/edit': typeof AuthenticatedPlanningIdEditRoute
   '/reports/$id/edit': typeof AuthenticatedReportsIdEditRoute
   '/api/public/actions/reminders': typeof ApiPublicActionsRemindersRoute
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
@@ -462,7 +484,7 @@ export interface FileRoutesByTo {
   '/apps': typeof AuthenticatedAppsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/objectives': typeof AuthenticatedObjectivesRoute
-  '/planning': typeof AuthenticatedPlanningRoute
+  '/planning': typeof AuthenticatedPlanningRouteWithChildren
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -483,6 +505,7 @@ export interface FileRoutesByTo {
   '/mail/settings': typeof AuthenticatedMailSettingsRoute
   '/minutes/$id': typeof AuthenticatedMinutesIdRoute
   '/minutes/dashboard': typeof AuthenticatedMinutesDashboardRoute
+  '/planning/$id': typeof AuthenticatedPlanningIdRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/reports/audit-roles': typeof AuthenticatedReportsAuditRolesRoute
@@ -491,6 +514,7 @@ export interface FileRoutesByTo {
   '/reports/new': typeof AuthenticatedReportsNewRoute
   '/tasks/$id': typeof AuthenticatedTasksIdRoute
   '/tasks/new': typeof AuthenticatedTasksNewRoute
+  '/share/plan/$token': typeof SharePlanTokenRoute
   '/ai-center': typeof AuthenticatedAiCenterIndexRoute
   '/company': typeof AuthenticatedCompanyIndexRoute
   '/documents': typeof AuthenticatedDocumentsIndexRoute
@@ -502,6 +526,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/company/employees/$id': typeof AuthenticatedCompanyEmployeesIdRoute
+  '/planning/$id/edit': typeof AuthenticatedPlanningIdEditRoute
   '/reports/$id/edit': typeof AuthenticatedReportsIdEditRoute
   '/api/public/actions/reminders': typeof ApiPublicActionsRemindersRoute
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
@@ -523,7 +548,7 @@ export interface FileRoutesById {
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/objectives': typeof AuthenticatedObjectivesRoute
-  '/_authenticated/planning': typeof AuthenticatedPlanningRoute
+  '/_authenticated/planning': typeof AuthenticatedPlanningRouteWithChildren
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -544,6 +569,7 @@ export interface FileRoutesById {
   '/_authenticated/mail/settings': typeof AuthenticatedMailSettingsRoute
   '/_authenticated/minutes/$id': typeof AuthenticatedMinutesIdRoute
   '/_authenticated/minutes/dashboard': typeof AuthenticatedMinutesDashboardRoute
+  '/_authenticated/planning/$id': typeof AuthenticatedPlanningIdRouteWithChildren
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
   '/_authenticated/reports/$id': typeof AuthenticatedReportsIdRouteWithChildren
@@ -553,6 +579,7 @@ export interface FileRoutesById {
   '/_authenticated/reports/new': typeof AuthenticatedReportsNewRoute
   '/_authenticated/tasks/$id': typeof AuthenticatedTasksIdRoute
   '/_authenticated/tasks/new': typeof AuthenticatedTasksNewRoute
+  '/share/plan/$token': typeof SharePlanTokenRoute
   '/_authenticated/ai-center/': typeof AuthenticatedAiCenterIndexRoute
   '/_authenticated/company/': typeof AuthenticatedCompanyIndexRoute
   '/_authenticated/documents/': typeof AuthenticatedDocumentsIndexRoute
@@ -564,6 +591,7 @@ export interface FileRoutesById {
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/company/employees/$id': typeof AuthenticatedCompanyEmployeesIdRoute
+  '/_authenticated/planning/$id/edit': typeof AuthenticatedPlanningIdEditRoute
   '/_authenticated/reports/$id/edit': typeof AuthenticatedReportsIdEditRoute
   '/api/public/actions/reminders': typeof ApiPublicActionsRemindersRoute
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
@@ -606,6 +634,7 @@ export interface FileRouteTypes {
     | '/mail/settings'
     | '/minutes/$id'
     | '/minutes/dashboard'
+    | '/planning/$id'
     | '/projects/$id'
     | '/projects/new'
     | '/reports/$id'
@@ -615,6 +644,7 @@ export interface FileRouteTypes {
     | '/reports/new'
     | '/tasks/$id'
     | '/tasks/new'
+    | '/share/plan/$token'
     | '/ai-center/'
     | '/company/'
     | '/documents/'
@@ -626,6 +656,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/tasks/'
     | '/company/employees/$id'
+    | '/planning/$id/edit'
     | '/reports/$id/edit'
     | '/api/public/actions/reminders'
     | '/api/public/ai/speak'
@@ -665,6 +696,7 @@ export interface FileRouteTypes {
     | '/mail/settings'
     | '/minutes/$id'
     | '/minutes/dashboard'
+    | '/planning/$id'
     | '/projects/$id'
     | '/projects/new'
     | '/reports/audit-roles'
@@ -673,6 +705,7 @@ export interface FileRouteTypes {
     | '/reports/new'
     | '/tasks/$id'
     | '/tasks/new'
+    | '/share/plan/$token'
     | '/ai-center'
     | '/company'
     | '/documents'
@@ -684,6 +717,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/tasks'
     | '/company/employees/$id'
+    | '/planning/$id/edit'
     | '/reports/$id/edit'
     | '/api/public/actions/reminders'
     | '/api/public/ai/speak'
@@ -725,6 +759,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mail/settings'
     | '/_authenticated/minutes/$id'
     | '/_authenticated/minutes/dashboard'
+    | '/_authenticated/planning/$id'
     | '/_authenticated/projects/$id'
     | '/_authenticated/projects/new'
     | '/_authenticated/reports/$id'
@@ -734,6 +769,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/new'
     | '/_authenticated/tasks/$id'
     | '/_authenticated/tasks/new'
+    | '/share/plan/$token'
     | '/_authenticated/ai-center/'
     | '/_authenticated/company/'
     | '/_authenticated/documents/'
@@ -745,6 +781,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/'
     | '/_authenticated/tasks/'
     | '/_authenticated/company/employees/$id'
+    | '/_authenticated/planning/$id/edit'
     | '/_authenticated/reports/$id/edit'
     | '/api/public/actions/reminders'
     | '/api/public/ai/speak'
@@ -764,6 +801,7 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   ShareTokenRoute: typeof ShareTokenRoute
+  SharePlanTokenRoute: typeof SharePlanTokenRoute
   ApiPublicActionsRemindersRoute: typeof ApiPublicActionsRemindersRoute
   ApiPublicAiSpeakRoute: typeof ApiPublicAiSpeakRoute
   ApiPublicAiTranscribeRoute: typeof ApiPublicAiTranscribeRoute
@@ -1046,6 +1084,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMinutesDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/planning/$id': {
+      id: '/_authenticated/planning/$id'
+      path: '/$id'
+      fullPath: '/planning/$id'
+      preLoaderRoute: typeof AuthenticatedPlanningIdRouteImport
+      parentRoute: typeof AuthenticatedPlanningRoute
+    }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
       path: '/projects'
@@ -1130,12 +1175,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTasksNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/share/plan/$token': {
+      id: '/share/plan/$token'
+      path: '/share/plan/$token'
+      fullPath: '/share/plan/$token'
+      preLoaderRoute: typeof SharePlanTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/company/employees/$id': {
       id: '/_authenticated/company/employees/$id'
       path: '/employees/$id'
       fullPath: '/company/employees/$id'
       preLoaderRoute: typeof AuthenticatedCompanyEmployeesIdRouteImport
       parentRoute: typeof AuthenticatedCompanyRoute
+    }
+    '/_authenticated/planning/$id/edit': {
+      id: '/_authenticated/planning/$id/edit'
+      path: '/edit'
+      fullPath: '/planning/$id/edit'
+      preLoaderRoute: typeof AuthenticatedPlanningIdEditRouteImport
+      parentRoute: typeof AuthenticatedPlanningIdRoute
     }
     '/_authenticated/reports/$id/': {
       id: '/_authenticated/reports/$id/'
@@ -1206,6 +1265,33 @@ const AuthenticatedCompanyRouteChildren: AuthenticatedCompanyRouteChildren = {
 const AuthenticatedCompanyRouteWithChildren =
   AuthenticatedCompanyRoute._addFileChildren(AuthenticatedCompanyRouteChildren)
 
+interface AuthenticatedPlanningIdRouteChildren {
+  AuthenticatedPlanningIdEditRoute: typeof AuthenticatedPlanningIdEditRoute
+}
+
+const AuthenticatedPlanningIdRouteChildren: AuthenticatedPlanningIdRouteChildren =
+  {
+    AuthenticatedPlanningIdEditRoute: AuthenticatedPlanningIdEditRoute,
+  }
+
+const AuthenticatedPlanningIdRouteWithChildren =
+  AuthenticatedPlanningIdRoute._addFileChildren(
+    AuthenticatedPlanningIdRouteChildren,
+  )
+
+interface AuthenticatedPlanningRouteChildren {
+  AuthenticatedPlanningIdRoute: typeof AuthenticatedPlanningIdRouteWithChildren
+}
+
+const AuthenticatedPlanningRouteChildren: AuthenticatedPlanningRouteChildren = {
+  AuthenticatedPlanningIdRoute: AuthenticatedPlanningIdRouteWithChildren,
+}
+
+const AuthenticatedPlanningRouteWithChildren =
+  AuthenticatedPlanningRoute._addFileChildren(
+    AuthenticatedPlanningRouteChildren,
+  )
+
 interface AuthenticatedReportsIdRouteChildren {
   AuthenticatedReportsIdEditRoute: typeof AuthenticatedReportsIdEditRoute
   AuthenticatedReportsIdIndexRoute: typeof AuthenticatedReportsIdIndexRoute
@@ -1229,7 +1315,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedObjectivesRoute: typeof AuthenticatedObjectivesRoute
-  AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
+  AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRouteWithChildren
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedAiCenterIdRoute: typeof AuthenticatedAiCenterIdRoute
@@ -1271,7 +1357,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompanyRoute: AuthenticatedCompanyRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedObjectivesRoute: AuthenticatedObjectivesRoute,
-  AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
+  AuthenticatedPlanningRoute: AuthenticatedPlanningRouteWithChildren,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedAiCenterIdRoute: AuthenticatedAiCenterIdRoute,
@@ -1319,6 +1405,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   ShareTokenRoute: ShareTokenRoute,
+  SharePlanTokenRoute: SharePlanTokenRoute,
   ApiPublicActionsRemindersRoute: ApiPublicActionsRemindersRoute,
   ApiPublicAiSpeakRoute: ApiPublicAiSpeakRoute,
   ApiPublicAiTranscribeRoute: ApiPublicAiTranscribeRoute,

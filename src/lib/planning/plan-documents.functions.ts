@@ -151,3 +151,109 @@ export const deletePlanDocument = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ------------------------------- partage --------------------------------- */
+
+export type PlanShare = {
+  id: string;
+  token: string;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export const listPlanShares = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ planId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }): Promise<PlanShare[]> => {
+    const supabase: any = context.supabase;
+    const { data: rows } = await supabase
+      .from("plan_shares")
+      .select("id, token, expires_at, created_at")
+      .eq("plan_id", data.planId)
+      .order("created_at", { ascending: false });
+    return (rows ?? []) as PlanShare[];
+  });
+
+export const createPlanShare = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ planId: z.string().uuid(), days: z.number().int().min(1).max(90).default(30) }).parse(data),
+  )
+  .handler(async ({ data, context }): Promise<PlanShare> => {
+    const supabase: any = context.supabase;
+    const userId: string = context.userId;
+    const expiresAt = new Date(Date.now() + data.days * 86400000).toISOString();
+
+    const { data: row, error } = await supabase
+      .from("plan_shares")
+      .insert({
+        plan_id: data.planId,
+        expires_at: expiresAt,
+        created_by: userId,
+      })
+      .select("id, token, expires_at, created_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return row as PlanShare;
+  });
+
+export const revokePlanShare = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const supabase: any = context.supabase;
+    const { error } = await supabase.from("plan_shares").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export type SharedPlan = {
+  title: string;
+  intro: string;
+  conclusion: string;
+  sections: PlanSection[];
+  period_start: string;
+  period_end: string;
+  company_name: string;
+};
+
+/** Accès public en lecture seule via un jeton — aucune authentification. */
+export const getSharedPlan = createServerFn({ method: "GET" })
+  .inputValidator((data: unknown) => z.object({ token: z.string().uuid() }).parse(data))
+  .handler(async ({ data }): Promise<SharedPlan | null> => {
+    const { supabaseAdmin: adminRaw } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin: any = adminRaw;
+
+    const { data: share } = await supabaseAdmin
+      .from("plan_shares")
+      .select("id, plan_id, expires_at")
+      .eq("token", data.token)
+      .maybeSingle();
+
+    if (!share) return null;
+    if (share.expires_at && new Date(share.expires_at).getTime() < Date.now()) return null;
+
+    const { data: plan } = await supabaseAdmin
+      .from("plan_documents")
+      .select("*")
+      .eq("id", share.plan_id)
+      .maybeSingle();
+    if (!plan) return null;
+
+    const { data: company } = await supabaseAdmin
+      .from("companies")
+      .select("name")
+      .eq("id", plan.company_id)
+      .maybeSingle();
+
+    const doc = toDocument(plan);
+    return {
+      title: doc.title,
+      intro: doc.intro,
+      conclusion: doc.conclusion,
+      sections: doc.sections,
+      period_start: doc.period_start,
+      period_end: doc.period_end,
+      company_name: (company as any)?.name ?? "DailyBrief",
+    };
+  });
