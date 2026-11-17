@@ -27,6 +27,7 @@ import {
   Circle,
   FileText,
   Loader2,
+  Download,
   MoreHorizontal,
   Pen,
   Plus,
@@ -39,7 +40,8 @@ import {
   structurePlanFromText,
   type StructuredPlan,
 } from "@/lib/planning/planning.functions";
-import { deleteReport } from "@/lib/reports.functions";
+import { deleteReport, getReport } from "@/lib/reports.functions";
+import { downloadReportPdf } from "@/lib/pdf-utils";
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({
@@ -80,6 +82,7 @@ function PlanningPage() {
   const structureFn = useServerFn(structurePlanFromText);
   const createFn = useServerFn(createPlanReportFromNarrative);
   const deleteFn = useServerFn(deleteReport);
+  const getReportFn = useServerFn(getReport);
 
   const weekStart = startOfWeek(new Date());
   const [open, setOpen] = useState(false);
@@ -124,6 +127,21 @@ function PlanningPage() {
   });
 
   const busy = structure.isPending || create.isPending;
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  async function download(planId: string) {
+    setDownloadingId(planId);
+    try {
+      const full = await getReportFn({ data: { id: planId } });
+      if (!full) throw new Error("Planning introuvable.");
+      await downloadReportPdf(full);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Téléchargement impossible");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -173,6 +191,22 @@ function PlanningPage() {
                     <Circle className="h-3.5 w-3.5" />
                     {formatLongDate(plan.report_date)}
                   </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label="Télécharger en PDF"
+                      title="Télécharger en PDF"
+                      disabled={downloadingId === plan.id}
+                      onClick={() => void download(plan.id)}
+                    >
+                      {downloadingId === plan.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -210,6 +244,7 @@ function PlanningPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  </div>
                 </div>
 
                 <button
