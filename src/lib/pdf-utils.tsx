@@ -11,8 +11,12 @@ import {
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { Font } from "@react-pdf/renderer";
 Font.registerHyphenationCallback((word) => [word]);
-const REPORT_LOGO_URL = () =>
-  `${typeof window !== "undefined" ? window.location.origin : ""}/logo-mbc.png`;
+const REPORT_LOGO_URL = () => {
+  // Priorite au logo de l'entreprise ; repli sur le logo DailyBrief.
+  const company = getBrandingLogo();
+  if (company) return company;
+  return `${typeof window !== "undefined" ? window.location.origin : ""}/logo-mbc.png`;
+};
 import type { ApprovalEntry, LoadedReport } from "./reports.types";
 import { REPORT_STATUS_LABEL, levelLabel } from "./reports.types";
 import type { ReportMinute } from "./minutes.functions";

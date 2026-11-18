@@ -27,6 +27,7 @@ import { ErrorLogger } from "@/components/ErrorLogger";
 import { AgentOrb } from "@/components/AgentOrb";
 import { OfflineFlush } from "@/components/OfflineFlush";
 import { ServiceWorkerSetup } from "@/components/ServiceWorkerSetup";
+import { BrandingLoader } from "@/components/BrandingLoader";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -141,6 +142,7 @@ function AuthenticatedLayout() {
         <AgentOrb />
         <OfflineFlush />
         <ServiceWorkerSetup />
+        <BrandingLoader />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
@@ -223,6 +225,7 @@ function AuthenticatedLayout() {
         <AgentOrb />
         <OfflineFlush />
         <ServiceWorkerSetup />
+        <BrandingLoader />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
