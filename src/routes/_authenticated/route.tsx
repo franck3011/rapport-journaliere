@@ -28,6 +28,7 @@ import { AgentOrb } from "@/components/AgentOrb";
 import { OfflineFlush } from "@/components/OfflineFlush";
 import { ServiceWorkerSetup } from "@/components/ServiceWorkerSetup";
 import { BrandingLoader } from "@/components/BrandingLoader";
+import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -136,6 +137,7 @@ function AuthenticatedLayout() {
       <div className="min-h-dvh bg-muted/30 flex flex-col">
         <TopBar email={user.email ?? ""} onSignOut={handleSignOut} />
         <main className="flex-1 min-w-0">
+          <SubscriptionBanner />
           <Outlet />
         </main>
         <ErrorLogger />
@@ -219,6 +221,7 @@ function AuthenticatedLayout() {
           </Link>
         </header>
         <main className="flex-1 min-w-0">
+          <SubscriptionBanner />
           <Outlet />
         </main>
         <ErrorLogger />
