@@ -23,6 +23,7 @@ import { Route as AuthenticatedObjectivesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedUsageRouteImport } from './routes/_authenticated/usage'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
@@ -140,6 +141,11 @@ const AuthenticatedPlansRoute = AuthenticatedPlansRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUsageRoute = AuthenticatedUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -433,6 +439,7 @@ export interface FileRoutesByFullPath {
   '/planning': typeof AuthenticatedPlanningRouteWithChildren
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/usage': typeof AuthenticatedUsageRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -495,6 +502,7 @@ export interface FileRoutesByTo {
   '/objectives': typeof AuthenticatedObjectivesRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/usage': typeof AuthenticatedUsageRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/_authenticated/planning': typeof AuthenticatedPlanningRouteWithChildren
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/usage': typeof AuthenticatedUsageRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -625,6 +634,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/plans'
     | '/profile'
+    | '/usage'
     | '/invite/$token'
     | '/legal/privacy'
     | '/legal/terms'
@@ -687,6 +697,7 @@ export interface FileRouteTypes {
     | '/objectives'
     | '/plans'
     | '/profile'
+    | '/usage'
     | '/invite/$token'
     | '/legal/privacy'
     | '/legal/terms'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planning'
     | '/_authenticated/plans'
     | '/_authenticated/profile'
+    | '/_authenticated/usage'
     | '/invite/$token'
     | '/legal/privacy'
     | '/legal/terms'
@@ -916,6 +928,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/usage': {
+      id: '/_authenticated/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof AuthenticatedUsageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/invite/$token': {
@@ -1338,6 +1357,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRouteWithChildren
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedUsageRoute: typeof AuthenticatedUsageRoute
   AuthenticatedAiCenterIdRoute: typeof AuthenticatedAiCenterIdRoute
   AuthenticatedDocumentsIdRoute: typeof AuthenticatedDocumentsIdRoute
   AuthenticatedExpensesNewRoute: typeof AuthenticatedExpensesNewRoute
@@ -1380,6 +1400,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanningRoute: AuthenticatedPlanningRouteWithChildren,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedUsageRoute: AuthenticatedUsageRoute,
   AuthenticatedAiCenterIdRoute: AuthenticatedAiCenterIdRoute,
   AuthenticatedDocumentsIdRoute: AuthenticatedDocumentsIdRoute,
   AuthenticatedExpensesNewRoute: AuthenticatedExpensesNewRoute,
