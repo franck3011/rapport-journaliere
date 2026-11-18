@@ -29,6 +29,7 @@ import { OfflineFlush } from "@/components/OfflineFlush";
 import { ServiceWorkerSetup } from "@/components/ServiceWorkerSetup";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
+import { CompanyGuard } from "@/components/CompanyGuard";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -145,6 +146,7 @@ function AuthenticatedLayout() {
         <OfflineFlush />
         <ServiceWorkerSetup />
         <BrandingLoader />
+        <CompanyGuard />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
@@ -229,6 +231,7 @@ function AuthenticatedLayout() {
         <OfflineFlush />
         <ServiceWorkerSetup />
         <BrandingLoader />
+        <CompanyGuard />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
