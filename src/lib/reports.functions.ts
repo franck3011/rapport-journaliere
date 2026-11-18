@@ -1121,3 +1121,84 @@ export const logSharedExport = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+
+/* -------------------- rapport -> facture -------------------- */
+
+/**
+ * Crée une facture à partir d'un rapport : même contenu, nouveau type de
+ * document, pour servir de base au travail administratif.
+ */
+export const createInvoiceFromReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }): Promise<{ id: string }> => {
+    const { supabase, userId } = context;
+
+    const { data: source, error } = await supabase
+      .from("reports")
+      .select("id, title, intro, conclusion, report_date")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!source) throw new Error("Rapport introuvable.");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const docNumber = await nextDocNumber(supabase, userId, "invoice");
+
+    const { data: created, error: insertError } = await supabase
+      .from("reports")
+      .insert({
+        author_id: userId,
+        report_date: today,
+        title: `Facture — ${source.title ?? "sans titre"}`,
+        intro: `Document établi à partir du rapport du ${source.report_date}.\n\n${source.intro ?? ""}`,
+        conclusion: source.conclusion ?? "",
+        doc_type: "invoice",
+        doc_number: docNumber,
+      })
+      .select("id")
+      .single();
+    if (insertError) throw new Error(insertError.message);
+
+    const { data: sourceSections } = await supabase
+      .from("report_sections")
+      .select("id, title, description, position")
+      .eq("report_id", data.id)
+      .order("position", { ascending: true });
+
+    const sections = (sourceSections ?? []) as any[];
+    if (sections.length > 0) {
+      const { data: inserted } = await supabase
+        .from("report_sections")
+        .insert(
+          sections.map((section, index) => ({
+            report_id: created.id,
+            title: section.title,
+            description: section.description,
+            position: index,
+          })),
+        )
+        .select("id");
+
+      const sourceIds = sections.map((s) => s.id);
+      const { data: bullets } = await supabase
+        .from("section_bullets")
+        .select("section_id, content, position")
+        .in("section_id", sourceIds)
+        .order("position", { ascending: true });
+
+      const payload: any[] = [];
+      sections.forEach((section, index) => {
+        const targetId = (inserted ?? [])[index]?.id;
+        if (!targetId) return;
+        ((bullets ?? []) as any[])
+          .filter((bullet) => bullet.section_id === section.id)
+          .forEach((bullet, position) => {
+            payload.push({ section_id: targetId, content: bullet.content, position });
+          });
+      });
+      if (payload.length > 0) await supabase.from("section_bullets").insert(payload);
+    }
+
+    return { id: created.id };
+  });

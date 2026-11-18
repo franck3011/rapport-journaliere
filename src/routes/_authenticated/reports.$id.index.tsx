@@ -11,6 +11,7 @@ import {
   logShareCopy,
   getShareAuditLog,
 } from "@/lib/reports.functions";
+import { createInvoiceFromReport } from "@/lib/reports.functions";
 import { getMyShareForReport } from "@/lib/shares.functions";
 import { SharePeopleDialog } from "@/components/SharePeopleDialog";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import {
   Clock,
   History,
   
+  Receipt,
 } from "lucide-react";
 import { formatLongDate } from "@/lib/date-utils";
 import { Lightbox } from "@/components/Lightbox";
@@ -150,6 +152,7 @@ export function ReportDetailPage({
   const fetchTimeline = useServerFn(getApprovalTimeline);
 
   const del = useServerFn(deleteReport);
+  const invoiceFn = useServerFn(createInvoiceFromReport);
   const dup = useServerFn(duplicateReport);
   const getToken = useServerFn(getShareToken);
   const enable = useServerFn(enableShare);
@@ -170,6 +173,7 @@ export function ReportDetailPage({
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [invoicing, setInvoicing] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareExpires, setShareExpires] = useState<string | null>(null);
@@ -252,6 +256,20 @@ export function ReportDetailPage({
       toast.error(e?.message ?? "Partage impossible");
     } finally {
       setSharing(false);
+    }
+  }
+
+  async function handleInvoice() {
+    if (!query.data) return;
+    setInvoicing(true);
+    try {
+      const created = await invoiceFn({ data: { id } });
+      toast.success("Facture créée à partir du rapport");
+      navigate({ to: "/reports/$id/edit", params: { id: created.id } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Création de la facture impossible");
+    } finally {
+      setInvoicing(false);
     }
   }
 
@@ -408,6 +426,18 @@ export function ReportDetailPage({
             )}
             Dupliquer
           </Button>
+            <Button
+              variant="outline"
+              onClick={handleInvoice}
+              disabled={invoicing}
+            >
+              {invoicing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Receipt className="h-4 w-4 mr-2" />
+              )}
+              Facturer
+            </Button>
           <Button variant="outline" onClick={() => setPeopleShareOpen(true)}>
             <Users className="h-4 w-4 mr-2" />
             Partager à une personne
