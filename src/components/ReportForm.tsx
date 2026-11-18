@@ -391,16 +391,37 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
 
 
   /** Preuve terrain : chaque photo est horodatée à la prise. */
-  function photoStamp(): string {
+    /** Position au moment de la prise, si le navigateur l'autorise. */
+  function currentCoords(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(null);
+      const timer = setTimeout(() => resolve(null), 2500);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          clearTimeout(timer);
+          resolve(null);
+        },
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 },
+      );
+    });
+  }
+
+  /** Preuve terrain : date, heure et position au moment de la prise. */
+  function photoStamp(coords: { lat: number; lng: number } | null): string {
     const d = new Date();
     const date = d.toLocaleDateString("fr-FR");
     const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    return `📷 ${date} à ${time}`;
+    const place = coords ? ` · 📍 ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "";
+    return `📷 ${date} à ${time}${place}`;
   }
 
   async function handleAddImages(files: FileList, sectionIdx: number | null, initialCaption = "") {
     const arr = Array.from(files);
-    const stamp = initialCaption || photoStamp();
+    const stamp = initialCaption || photoStamp(await currentCoords());
     // Optimistic add with uploading state
     const optimistic: FormImage[] = arr.map((f) => ({
       key: nextKey(),
