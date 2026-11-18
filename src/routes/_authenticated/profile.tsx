@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyProfile, updateMyProfile } from "@/lib/reports.functions";
 import { getMyCompanyPlan } from "@/lib/company.functions";
+import { CompanyLogoCard } from "@/components/CompanyLogoCard";
 import { listMyVerificationRequests } from "@/lib/reserved-names.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -203,6 +204,8 @@ function ProfilePage() {
           )}
         </CardContent>
       </Card>
+
+      <CompanyLogoCard />
 
       <Card id="verification" className="hidden">
         <CardHeader>
