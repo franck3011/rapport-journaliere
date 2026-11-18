@@ -329,6 +329,8 @@ export function ReportDetailPage({
     }
   }, [query.data, id, navigate]);
 
+  const isPlan = query.data?.doc_type === "plan";
+
   if (query.isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-4">
@@ -343,7 +345,7 @@ export function ReportDetailPage({
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
         <Button variant="ghost" asChild>
-          <Link to="/reports">
+          <Link to={isPlan ? "/planning" : "/reports"}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour
           </Link>
@@ -367,7 +369,7 @@ export function ReportDetailPage({
     <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" asChild>
-          <Link to="/reports">
+          <Link to={isPlan ? "/planning" : "/reports"}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour
           </Link>
@@ -412,7 +414,7 @@ export function ReportDetailPage({
           </Button>
           {canEdit && !isMine && (
             <Button variant="outline" asChild>
-              <Link to="/reports/$id/edit" params={{ id: r.id }}>
+              <Link to={isPlan ? "/planning/$id/edit" : "/reports/$id/edit"} params={{ id: r.id }}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Modifier
               </Link>
@@ -421,7 +423,7 @@ export function ReportDetailPage({
           {isMine && (
             <>
               <Button variant="outline" asChild>
-                <Link to="/reports/$id/edit" params={{ id: r.id }}>
+                <Link to={isPlan ? "/planning/$id/edit" : "/reports/$id/edit"} params={{ id: r.id }}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Modifier
                 </Link>

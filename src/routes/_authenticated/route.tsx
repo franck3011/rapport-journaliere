@@ -338,10 +338,8 @@ function SidebarInner({
   const moduleScreens = (current?.screens ?? []).filter(
     (s) => s.to !== "/company/applications" || moduleState?.isOwner,
   );
-  // Raccourcis permanents : modules marqués `pinned` dans le registre.
-  const pinnedItems: { to: string; label: string; icon: typeof UserCircle2 }[] = mods
-    .filter((m) => m.pinned)
-    .map((m) => ({ to: m.entry, label: m.name, icon: m.icon }));
+  // Le menu latéral n'affiche que les écrans du module courant ; le lanceur
+  // « Applications » reste le point d'entrée vers les autres modules.
   const navItems: { to: string; label: string; icon: typeof UserCircle2 }[] =
     adminOnly
       ? [
@@ -350,7 +348,6 @@ function SidebarInner({
         ]
       : [
           { ...LAUNCHER_ITEM },
-          ...pinnedItems,
           ...moduleScreens,
           ...(isAdmin
             ? [{ to: "/admin", label: "Admin plateforme", icon: ShieldAlert }]
