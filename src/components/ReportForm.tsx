@@ -45,6 +45,7 @@ import { parseISO, format } from "date-fns";
 import type { LoadedReport } from "@/lib/reports.types";
 import { REPORT_TEMPLATES } from "@/lib/report-templates";
 import { CoherenceDialog } from "@/components/reports/CoherenceDialog";
+import { enqueueReport, isOfflineError } from "@/lib/offline/queue";
 
 type FormBullet = { key: string; content: string };
 type FormImage = {
@@ -236,6 +237,8 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
     }
   }
 
+  let pendingPayload: any = null;
+
   const saveMut = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -297,6 +300,7 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
             })),
         ],
       };
+      pendingPayload = payload;
       return upsert({ data: payload });
     },
     onSuccess: (res) => {
@@ -308,7 +312,17 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
         params: { id: res.id },
       });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Enregistrement impossible"),
+    onError: (e: any) => {
+      // Pas de réseau : on garde le rapport sur l'appareil au lieu de le perdre.
+      if (isOfflineError(e) && pendingPayload) {
+        enqueueReport(pendingPayload);
+        toast.warning(
+          "Pas de réseau : rapport conservé sur cet appareil. Il sera envoyé automatiquement au retour de la connexion.",
+        );
+        return;
+      }
+      toast.error(e?.message ?? "Enregistrement impossible");
+    },
     onSettled: () => setSaving(false),
   });
 

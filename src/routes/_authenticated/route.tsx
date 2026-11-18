@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { ErrorLogger } from "@/components/ErrorLogger";
 import { AgentOrb } from "@/components/AgentOrb";
+import { OfflineFlush } from "@/components/OfflineFlush";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -137,6 +138,7 @@ function AuthenticatedLayout() {
         </main>
         <ErrorLogger />
         <AgentOrb />
+        <OfflineFlush />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
@@ -217,6 +219,7 @@ function AuthenticatedLayout() {
         </main>
         <ErrorLogger />
         <AgentOrb />
+        <OfflineFlush />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
