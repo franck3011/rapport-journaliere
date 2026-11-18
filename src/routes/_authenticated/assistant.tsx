@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,11 @@ const TOOL_LABEL: Record<AssistantTool, string> = {
   objectifs: "objectifs",
   plannings: "plannings",
   membres_silencieux: "équipe",
+  creer_rapport: "rapport créé",
+  creer_planning: "planning créé",
+  creer_action: "action créée",
+  cloturer_action: "action clôturée",
+  creer_objectif: "objectif créé",
   aucun: "réponse directe",
 };
 
@@ -37,10 +42,11 @@ const SUGGESTIONS = [
   "Combien d'actions ouvertes ai-je, et combien en retard ?",
   "Où en sont mes objectifs ?",
   "Qui n'a pas envoyé de rapport cette semaine ?",
-  "Quels sont les plannings en cours ?",
+  "Crée un planning de maintenance informatique pour la semaine prochaine",
+  "Crée une action : relancer le fournisseur, échéance vendredi",
 ];
 
-type Message = { role: "user" | "assistant"; text: string; tool?: AssistantTool };
+type Message = { role: "user" | "assistant"; text: string; tool?: AssistantTool; data?: any };
 
 function AssistantPage() {
   const askFn = useServerFn(askAssistant);
@@ -61,7 +67,7 @@ function AssistantPage() {
       const result = await askFn({ data: { message: question } });
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: result.answer, tool: result.tool },
+        { role: "assistant", text: result.answer, tool: result.tool, data: result.data },
       ]);
     } catch (e: any) {
       setMessages((current) => [
@@ -138,6 +144,15 @@ function AssistantPage() {
                   source : {TOOL_LABEL[message.tool]}
                 </p>
               )}
+              {message.data?.id && (
+                <Link
+                  to={message.tool === "creer_planning" ? "/planning/$id" : "/reports/$id"}
+                  params={{ id: message.data.id }}
+                  className="mt-2 inline-block text-[12px] font-medium underline underline-offset-2 opacity-80 hover:opacity-100"
+                >
+                  Ouvrir le document →
+                </Link>
+              )}
             </div>
             {message.role === "user" && (
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -175,7 +190,7 @@ function AssistantPage() {
       </form>
 
       <p className="mt-2 text-[11px] text-muted-foreground">
-        L'assistant lit uniquement ce que vos droits autorisent. Il ne modifie rien pour l'instant.
+        L'assistant agit dans la limite de vos droits. Les créations restent des brouillons que tu peux relire.
       </p>
     </div>
   );
