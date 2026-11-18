@@ -376,14 +376,23 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
   }
 
 
+  /** Preuve terrain : chaque photo est horodatée à la prise. */
+  function photoStamp(): string {
+    const d = new Date();
+    const date = d.toLocaleDateString("fr-FR");
+    const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    return `📷 ${date} à ${time}`;
+  }
+
   async function handleAddImages(files: FileList, sectionIdx: number | null, initialCaption = "") {
     const arr = Array.from(files);
+    const stamp = initialCaption || photoStamp();
     // Optimistic add with uploading state
     const optimistic: FormImage[] = arr.map((f) => ({
       key: nextKey(),
       storage_path: "",
       url: URL.createObjectURL(f),
-      caption: initialCaption,
+      caption: stamp,
       uploading: true,
     }));
     setForm((prev) => {
