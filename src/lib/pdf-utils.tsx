@@ -1,3 +1,4 @@
+import { getBrandingLogo } from "@/lib/branding";
 import "./buffer-polyfill";
 import {
   Document,
