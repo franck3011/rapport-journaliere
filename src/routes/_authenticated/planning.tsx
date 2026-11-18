@@ -111,7 +111,7 @@ function PlanningPage() {
       setOpen(false);
       setPreview(null);
       setSummary("");
-      navigate({ to: "/reports/$id/edit", params: { id } });
+      navigate({ to: "/planning/$id/edit", params: { id } });
     },
     onError: (e: any) => toast.error(e?.message ?? "Création impossible"),
   });
@@ -221,7 +221,7 @@ function PlanningPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() =>
-                          navigate({ to: "/reports/$id", params: { id: plan.id } })
+                          navigate({ to: "/planning/$id", params: { id: plan.id } })
                         }
                       >
                         <FileText className="h-4 w-4 mr-2" />
@@ -229,7 +229,7 @@ function PlanningPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
-                          navigate({ to: "/reports/$id/edit", params: { id: plan.id } })
+                          navigate({ to: "/planning/$id/edit", params: { id: plan.id } })
                         }
                       >
                         <Pen className="h-4 w-4 mr-2" />
@@ -250,7 +250,7 @@ function PlanningPage() {
                 <button
                   type="button"
                   className="text-left"
-                  onClick={() => navigate({ to: "/reports/$id", params: { id: plan.id } })}
+                  onClick={() => navigate({ to: "/planning/$id", params: { id: plan.id } })}
                 >
                   <h2 className="line-clamp-2 text-lg font-bold leading-snug">
                     {plan.title || "(sans titre)"}

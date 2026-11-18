@@ -82,8 +82,15 @@ export const Route = createFileRoute("/_authenticated/reports/$id/")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: ReportDetailPage,
+  component: ReportDetailRoute,
 });
+
+/** Enveloppe de route : ne sert qu'à fournir l'identifiant et l'utilisateur. */
+function ReportDetailRoute() {
+  const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
+  return <ReportDetailPage id={id} user={user} />;
+}
 
 function RichText({ text }: { text: string }) {
   const paras = text
@@ -130,9 +137,13 @@ function actionLabel(action: string): string {
   }
 }
 
-function ReportDetailPage() {
-  const { id } = Route.useParams();
-  const { user } = Route.useRouteContext();
+export function ReportDetailPage({
+  id,
+  user,
+}: {
+  id: string;
+  user: { id: string; email?: string | null };
+}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fetchOne = useServerFn(getReport);

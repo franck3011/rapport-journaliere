@@ -148,6 +148,11 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
   const queryClient = useQueryClient();
   const upsert = useServerFn(upsertReport);
   const extract = useServerFn(extractReportFromPdf);
+
+  // Un planning est un rapport de type « plan » : après enregistrement, il doit
+  // rester dans le module Planning au lieu de basculer dans les rapports.
+  const isPlan = (initial as any)?.doc_type === "plan";
+  const moduleHome = isPlan ? ("/planning" as const) : ("/reports" as const);
   const [form, setForm] = useState<FormState>(() =>
     initial ? fromReport(initial) : emptyForm(),
   );
@@ -298,7 +303,10 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
       toast.success(form.id ? "Rapport mis à jour" : "Rapport créé");
       queryClient.invalidateQueries({ queryKey: ["reports"] });
       queryClient.invalidateQueries({ queryKey: ["report", res.id] });
-      navigate({ to: "/reports/$id", params: { id: res.id } });
+      navigate({
+        to: isPlan ? "/planning/$id" : "/reports/$id",
+        params: { id: res.id },
+      });
     },
     onError: (e: any) => toast.error(e?.message ?? "Enregistrement impossible"),
     onSettled: () => setSaving(false),
@@ -591,7 +599,7 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate({ to: "/reports" })}>
+        <Button variant="ghost" onClick={() => navigate({ to: moduleHome })}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
         </Button>
@@ -949,7 +957,7 @@ export function ReportForm({ initial }: { initial?: LoadedReport }) {
 
       {/* Actions */}
       <div className="flex justify-end gap-2 sticky bottom-4 bg-background/95 backdrop-blur border border-border rounded-lg p-3">
-        <Button variant="outline" onClick={() => navigate({ to: "/reports" })}>
+        <Button variant="outline" onClick={() => navigate({ to: moduleHome })}>
           Annuler
         </Button>
         <Button onClick={handleSave} disabled={saving}>
