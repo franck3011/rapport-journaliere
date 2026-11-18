@@ -113,6 +113,17 @@ export const APP_MODULES: AppModule[] = [
     screens: [{ to: "/planning", label: "Planning", icon: CalendarDays }],
   },
   {
+    code: "assistant",
+    name: "Agent",
+    description:
+      "Posez une question sur votre activité : l'agent lit vos données et répond avec les vrais chiffres.",
+    icon: Bot,
+    tone: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    entry: "/assistant",
+    core: false,
+    screens: [{ to: "/assistant", label: "Agent", icon: Bot }],
+  },
+  {
     code: "projects",
     name: "Projets",
     description:

@@ -197,7 +197,20 @@ export const askAssistant = createServerFn({ method: "POST" })
       result = { erreur: e instanceof Error ? e.message : "Lecture impossible" };
     }
 
-    // 3. Répondre avec les données réelles
+    // 3a. Question générale : on délègue à l'assistante transversale existante
+    // (projets, GED, notes de frais). Les deux assistants collaborent au lieu
+    // de se contredire.
+    if (tool === "aucun") {
+      const { answerGlobally } = await import("@/lib/global-ai.server");
+      const reply = await answerGlobally({
+        supabase,
+        userId,
+        message: data.message,
+      });
+      return { answer: reply.trim(), tool, data: null };
+    }
+
+    // 3b. Répondre avec les données réelles
     const answerRaw = await callAI({
       system: ANSWER_SYSTEM,
       messages: [
