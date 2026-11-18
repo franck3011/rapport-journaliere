@@ -319,6 +319,16 @@ export function ReportDetailPage({
     }
   }
 
+  // Un planning ouvert depuis le module Rapports bascule dans son propre module.
+  useEffect(() => {
+    if (
+      query.data?.doc_type === "plan" &&
+      !window.location.pathname.startsWith("/planning/")
+    ) {
+      navigate({ to: "/planning/$id", params: { id } });
+    }
+  }, [query.data, id, navigate]);
+
   if (query.isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-4">

@@ -130,6 +130,8 @@ function ReportsListPage() {
     const lo = monthFrom !== "all" && monthTo !== "all" && monthTo < monthFrom ? monthTo : monthFrom;
     const hi = monthFrom !== "all" && monthTo !== "all" && monthTo < monthFrom ? monthFrom : monthTo;
     return rows.filter((r) => {
+      // Les plannings vivent dans leur propre module : on ne les melange pas aux rapports.
+      if (r.doc_type === "plan") return false;
       const m = r.report_date.slice(0, 7);
       if (lo !== "all" && m < lo) return false;
       if (hi !== "all" && m > hi) return false;
