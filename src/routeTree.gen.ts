@@ -48,6 +48,7 @@ import { Route as AuthenticatedMailSettingsRouteImport } from './routes/_authent
 import { Route as AuthenticatedMinutesIndexRouteImport } from './routes/_authenticated/minutes.index'
 import { Route as AuthenticatedMinutesIdRouteImport } from './routes/_authenticated/minutes.$id'
 import { Route as AuthenticatedMinutesDashboardRouteImport } from './routes/_authenticated/minutes.dashboard'
+import { Route as AuthenticatedPlanningIndexRouteImport } from './routes/_authenticated/planning.index'
 import { Route as AuthenticatedPlanningIdRouteImport } from './routes/_authenticated/planning.$id'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
@@ -62,6 +63,7 @@ import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedTasksIdRouteImport } from './routes/_authenticated/tasks.$id'
 import { Route as AuthenticatedTasksNewRouteImport } from './routes/_authenticated/tasks.new'
 import { Route as AuthenticatedCompanyEmployeesIdRouteImport } from './routes/_authenticated/company.employees.$id'
+import { Route as AuthenticatedPlanningIdIndexRouteImport } from './routes/_authenticated/planning.$id.index'
 import { Route as AuthenticatedPlanningIdEditRouteImport } from './routes/_authenticated/planning.$id.edit'
 import { Route as AuthenticatedReportsIdIndexRouteImport } from './routes/_authenticated/reports.$id.index'
 import { Route as AuthenticatedReportsIdEditRouteImport } from './routes/_authenticated/reports.$id.edit'
@@ -281,6 +283,12 @@ const AuthenticatedMinutesDashboardRoute =
     path: '/minutes/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPlanningIndexRoute =
+  AuthenticatedPlanningIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPlanningRoute,
+  } as any)
 const AuthenticatedPlanningIdRoute = AuthenticatedPlanningIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -357,6 +365,12 @@ const AuthenticatedCompanyEmployeesIdRoute =
     id: '/employees/$id',
     path: '/employees/$id',
     getParentRoute: () => AuthenticatedCompanyRoute,
+  } as any)
+const AuthenticatedPlanningIdIndexRoute =
+  AuthenticatedPlanningIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPlanningIdRoute,
   } as any)
 const AuthenticatedPlanningIdEditRoute =
   AuthenticatedPlanningIdEditRouteImport.update({
@@ -454,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/leaves/': typeof AuthenticatedLeavesIndexRoute
   '/mail/': typeof AuthenticatedMailIndexRoute
   '/minutes/': typeof AuthenticatedMinutesIndexRoute
+  '/planning/': typeof AuthenticatedPlanningIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/reports/': typeof AuthenticatedReportsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
@@ -464,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
   '/api/public/ai/transcribe': typeof ApiPublicAiTranscribeRoute
   '/api/public/mail/dispatch-scheduled': typeof ApiPublicMailDispatchScheduledRoute
+  '/planning/$id/': typeof AuthenticatedPlanningIdIndexRoute
   '/reports/$id/': typeof AuthenticatedReportsIdIndexRoute
   '/api/public/mail/oauth/callback': typeof ApiPublicMailOauthCallbackRoute
 }
@@ -477,7 +493,6 @@ export interface FileRoutesByTo {
   '/apps': typeof AuthenticatedAppsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/objectives': typeof AuthenticatedObjectivesRoute
-  '/planning': typeof AuthenticatedPlanningRouteWithChildren
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -498,7 +513,6 @@ export interface FileRoutesByTo {
   '/mail/settings': typeof AuthenticatedMailSettingsRoute
   '/minutes/$id': typeof AuthenticatedMinutesIdRoute
   '/minutes/dashboard': typeof AuthenticatedMinutesDashboardRoute
-  '/planning/$id': typeof AuthenticatedPlanningIdRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/reports/audit-roles': typeof AuthenticatedReportsAuditRolesRoute
@@ -514,6 +528,7 @@ export interface FileRoutesByTo {
   '/leaves': typeof AuthenticatedLeavesIndexRoute
   '/mail': typeof AuthenticatedMailIndexRoute
   '/minutes': typeof AuthenticatedMinutesIndexRoute
+  '/planning': typeof AuthenticatedPlanningIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
@@ -524,6 +539,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
   '/api/public/ai/transcribe': typeof ApiPublicAiTranscribeRoute
   '/api/public/mail/dispatch-scheduled': typeof ApiPublicMailDispatchScheduledRoute
+  '/planning/$id': typeof AuthenticatedPlanningIdIndexRoute
   '/reports/$id': typeof AuthenticatedReportsIdIndexRoute
   '/api/public/mail/oauth/callback': typeof ApiPublicMailOauthCallbackRoute
 }
@@ -578,6 +594,7 @@ export interface FileRoutesById {
   '/_authenticated/leaves/': typeof AuthenticatedLeavesIndexRoute
   '/_authenticated/mail/': typeof AuthenticatedMailIndexRoute
   '/_authenticated/minutes/': typeof AuthenticatedMinutesIndexRoute
+  '/_authenticated/planning/': typeof AuthenticatedPlanningIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
@@ -588,6 +605,7 @@ export interface FileRoutesById {
   '/api/public/ai/speak': typeof ApiPublicAiSpeakRoute
   '/api/public/ai/transcribe': typeof ApiPublicAiTranscribeRoute
   '/api/public/mail/dispatch-scheduled': typeof ApiPublicMailDispatchScheduledRoute
+  '/_authenticated/planning/$id/': typeof AuthenticatedPlanningIdIndexRoute
   '/_authenticated/reports/$id/': typeof AuthenticatedReportsIdIndexRoute
   '/api/public/mail/oauth/callback': typeof ApiPublicMailOauthCallbackRoute
 }
@@ -642,6 +660,7 @@ export interface FileRouteTypes {
     | '/leaves/'
     | '/mail/'
     | '/minutes/'
+    | '/planning/'
     | '/projects/'
     | '/reports/'
     | '/tasks/'
@@ -652,6 +671,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/speak'
     | '/api/public/ai/transcribe'
     | '/api/public/mail/dispatch-scheduled'
+    | '/planning/$id/'
     | '/reports/$id/'
     | '/api/public/mail/oauth/callback'
   fileRoutesByTo: FileRoutesByTo
@@ -665,7 +685,6 @@ export interface FileRouteTypes {
     | '/apps'
     | '/dashboard'
     | '/objectives'
-    | '/planning'
     | '/plans'
     | '/profile'
     | '/invite/$token'
@@ -686,7 +705,6 @@ export interface FileRouteTypes {
     | '/mail/settings'
     | '/minutes/$id'
     | '/minutes/dashboard'
-    | '/planning/$id'
     | '/projects/$id'
     | '/projects/new'
     | '/reports/audit-roles'
@@ -702,6 +720,7 @@ export interface FileRouteTypes {
     | '/leaves'
     | '/mail'
     | '/minutes'
+    | '/planning'
     | '/projects'
     | '/reports'
     | '/tasks'
@@ -712,6 +731,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/speak'
     | '/api/public/ai/transcribe'
     | '/api/public/mail/dispatch-scheduled'
+    | '/planning/$id'
     | '/reports/$id'
     | '/api/public/mail/oauth/callback'
   id:
@@ -765,6 +785,7 @@ export interface FileRouteTypes {
     | '/_authenticated/leaves/'
     | '/_authenticated/mail/'
     | '/_authenticated/minutes/'
+    | '/_authenticated/planning/'
     | '/_authenticated/projects/'
     | '/_authenticated/reports/'
     | '/_authenticated/tasks/'
@@ -775,6 +796,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/speak'
     | '/api/public/ai/transcribe'
     | '/api/public/mail/dispatch-scheduled'
+    | '/_authenticated/planning/$id/'
     | '/_authenticated/reports/$id/'
     | '/api/public/mail/oauth/callback'
   fileRoutesById: FileRoutesById
@@ -1071,6 +1093,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMinutesDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/planning/': {
+      id: '/_authenticated/planning/'
+      path: '/'
+      fullPath: '/planning/'
+      preLoaderRoute: typeof AuthenticatedPlanningIndexRouteImport
+      parentRoute: typeof AuthenticatedPlanningRoute
+    }
     '/_authenticated/planning/$id': {
       id: '/_authenticated/planning/$id'
       path: '/$id'
@@ -1169,6 +1198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompanyEmployeesIdRouteImport
       parentRoute: typeof AuthenticatedCompanyRoute
     }
+    '/_authenticated/planning/$id/': {
+      id: '/_authenticated/planning/$id/'
+      path: '/'
+      fullPath: '/planning/$id/'
+      preLoaderRoute: typeof AuthenticatedPlanningIdIndexRouteImport
+      parentRoute: typeof AuthenticatedPlanningIdRoute
+    }
     '/_authenticated/planning/$id/edit': {
       id: '/_authenticated/planning/$id/edit'
       path: '/edit'
@@ -1247,11 +1283,13 @@ const AuthenticatedCompanyRouteWithChildren =
 
 interface AuthenticatedPlanningIdRouteChildren {
   AuthenticatedPlanningIdEditRoute: typeof AuthenticatedPlanningIdEditRoute
+  AuthenticatedPlanningIdIndexRoute: typeof AuthenticatedPlanningIdIndexRoute
 }
 
 const AuthenticatedPlanningIdRouteChildren: AuthenticatedPlanningIdRouteChildren =
   {
     AuthenticatedPlanningIdEditRoute: AuthenticatedPlanningIdEditRoute,
+    AuthenticatedPlanningIdIndexRoute: AuthenticatedPlanningIdIndexRoute,
   }
 
 const AuthenticatedPlanningIdRouteWithChildren =
@@ -1261,10 +1299,12 @@ const AuthenticatedPlanningIdRouteWithChildren =
 
 interface AuthenticatedPlanningRouteChildren {
   AuthenticatedPlanningIdRoute: typeof AuthenticatedPlanningIdRouteWithChildren
+  AuthenticatedPlanningIndexRoute: typeof AuthenticatedPlanningIndexRoute
 }
 
 const AuthenticatedPlanningRouteChildren: AuthenticatedPlanningRouteChildren = {
   AuthenticatedPlanningIdRoute: AuthenticatedPlanningIdRouteWithChildren,
+  AuthenticatedPlanningIndexRoute: AuthenticatedPlanningIndexRoute,
 }
 
 const AuthenticatedPlanningRouteWithChildren =
