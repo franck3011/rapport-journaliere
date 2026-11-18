@@ -24,6 +24,7 @@ import {
   ListChecks,
 } from "lucide-react";
 import { ErrorLogger } from "@/components/ErrorLogger";
+import { AgentOrb } from "@/components/AgentOrb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -135,6 +136,7 @@ function AuthenticatedLayout() {
           <Outlet />
         </main>
         <ErrorLogger />
+        <AgentOrb />
         <CommandPalette />
         <CompanyChatWidget />
       </div>
@@ -214,6 +216,7 @@ function AuthenticatedLayout() {
           <Outlet />
         </main>
         <ErrorLogger />
+        <AgentOrb />
         <CommandPalette />
         <CompanyChatWidget />
       </div>

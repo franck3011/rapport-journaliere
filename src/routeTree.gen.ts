@@ -17,7 +17,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedActionsRouteImport } from './routes/_authenticated/actions'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAppsRouteImport } from './routes/_authenticated/apps'
-import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedObjectivesRouteImport } from './routes/_authenticated/objectives'
@@ -111,11 +110,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 const AuthenticatedAppsRoute = AuthenticatedAppsRouteImport.update({
   id: '/apps',
   path: '/apps',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCompanyRoute = AuthenticatedCompanyRouteImport.update({
@@ -433,7 +427,6 @@ export interface FileRoutesByFullPath {
   '/actions': typeof AuthenticatedActionsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/apps': typeof AuthenticatedAppsRoute
-  '/assistant': typeof AuthenticatedAssistantRoute
   '/company': typeof AuthenticatedCompanyRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/objectives': typeof AuthenticatedObjectivesRoute
@@ -498,7 +491,6 @@ export interface FileRoutesByTo {
   '/actions': typeof AuthenticatedActionsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/apps': typeof AuthenticatedAppsRoute
-  '/assistant': typeof AuthenticatedAssistantRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/objectives': typeof AuthenticatedObjectivesRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -561,7 +553,6 @@ export interface FileRoutesById {
   '/_authenticated/actions': typeof AuthenticatedActionsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/apps': typeof AuthenticatedAppsRoute
-  '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/objectives': typeof AuthenticatedObjectivesRoute
@@ -628,7 +619,6 @@ export interface FileRouteTypes {
     | '/actions'
     | '/admin'
     | '/apps'
-    | '/assistant'
     | '/company'
     | '/dashboard'
     | '/objectives'
@@ -693,7 +683,6 @@ export interface FileRouteTypes {
     | '/actions'
     | '/admin'
     | '/apps'
-    | '/assistant'
     | '/dashboard'
     | '/objectives'
     | '/plans'
@@ -755,7 +744,6 @@ export interface FileRouteTypes {
     | '/_authenticated/actions'
     | '/_authenticated/admin'
     | '/_authenticated/apps'
-    | '/_authenticated/assistant'
     | '/_authenticated/company'
     | '/_authenticated/dashboard'
     | '/_authenticated/objectives'
@@ -886,13 +874,6 @@ declare module '@tanstack/react-router' {
       path: '/apps'
       fullPath: '/apps'
       preLoaderRoute: typeof AuthenticatedAppsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/assistant': {
-      id: '/_authenticated/assistant'
-      path: '/assistant'
-      fullPath: '/assistant'
-      preLoaderRoute: typeof AuthenticatedAssistantRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/company': {
@@ -1351,7 +1332,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedActionsRoute: typeof AuthenticatedActionsRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
-  AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedObjectivesRoute: typeof AuthenticatedObjectivesRoute
@@ -1394,7 +1374,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActionsRoute: AuthenticatedActionsRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAppsRoute: AuthenticatedAppsRoute,
-  AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
   AuthenticatedCompanyRoute: AuthenticatedCompanyRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedObjectivesRoute: AuthenticatedObjectivesRoute,
