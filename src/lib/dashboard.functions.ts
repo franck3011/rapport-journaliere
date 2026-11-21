@@ -122,7 +122,10 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
           .in("status", ["submitted", "En attente"])
           // Scope entreprise : sans ce filtre, le compteur incluait les notes
           // de frais de toutes les entreprises de la plateforme.
-          .eq("company_id", companyId ?? "00000000-0000-0000-0000-000000000000"),
+          .eq("company_id", companyId ?? "00000000-0000-0000-0000-000000000000")
+          // On ne valide pas ses propres notes : la page de validation les exclut
+          // aussi, sinon le compteur et la liste divergent.
+          .neq("author_id", uid),
       ),
       count(sb.from("documents").select("id", { count: "exact", head: true })),
       count(
