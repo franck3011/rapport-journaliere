@@ -117,6 +117,27 @@ function AuthPage() {
   }, [navigate, nextPath]);
 
 
+  /** Connexion en un clic au compte de démonstration (variables d'environnement). */
+  async function handleDemo() {
+    const demoEmail = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
+    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
+    if (!demoEmail || !demoPassword) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: demoPassword,
+      });
+      if (error) throw error;
+      toast.success("Mode démonstration");
+      navigate({ href: nextPath, replace: true });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Démonstration indisponible");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -172,8 +193,7 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Connecté");
         navigate({ href: nextPath, replace: true });
-      } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      } else {        const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
@@ -433,6 +453,18 @@ function AuthPage() {
                 {mode === "forgot" && "Envoyer le lien"}
               </Button>
             </form>
+
+            {mode === "signin" && Boolean(import.meta.env.VITE_DEMO_EMAIL) && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full"
+                onClick={handleDemo}
+                disabled={loading}
+              >
+                Essayer la démonstration, sans créer de compte
+              </Button>
+            )}
             <div className="text-center text-sm text-muted-foreground space-y-2">
               {mode === "signin" ? (
                 <>
