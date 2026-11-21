@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const Route = createFileRoute("/_authenticated/reports/$id/edit")({
   head: () => ({
     meta: [
-      { title: "Modifier — Lovable Rapports" },
+      { title: "Modifier — DailyBrief" },
       { name: "robots", content: "noindex" },
     ],
   }),

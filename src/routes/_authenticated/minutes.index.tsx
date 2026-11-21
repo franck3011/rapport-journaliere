@@ -60,7 +60,7 @@ import { fr } from "date-fns/locale";
 export const Route = createFileRoute("/_authenticated/minutes/")({
   head: () => ({
     meta: [
-      { title: "Procès-verbaux — Lovable Rapports" },
+      { title: "Procès-verbaux — DailyBrief" },
       {
         name: "description",
         content: "Tous les procès-verbaux liés aux rapports, groupés par mois.",

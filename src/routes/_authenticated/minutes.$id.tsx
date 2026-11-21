@@ -33,7 +33,7 @@ import {
 export const Route = createFileRoute("/_authenticated/minutes/$id")({
   head: () => ({
     meta: [
-      { title: "Procès-verbal — Lovable Rapports" },
+      { title: "Procès-verbal — DailyBrief" },
       { name: "robots", content: "noindex" },
     ],
   }),

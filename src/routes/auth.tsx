@@ -34,7 +34,7 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Connexion — Lovable Rapports" },
+      { title: "Connexion — DailyBrief" },
       { name: "description", content: "Connectez-vous à votre espace rapports d'équipe." },
       { name: "robots", content: "noindex" },
     ],
@@ -223,7 +223,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-2 mb-6 text-primary">
           <FileText className="h-6 w-6" />
-          <span className="text-xl font-semibold text-foreground">Lovable Rapports</span>
+          <span className="text-xl font-semibold text-foreground">DailyBrief</span>
         </Link>
         <Card className="shadow-sm border-border/80">
           <CardHeader>

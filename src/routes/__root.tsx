@@ -84,13 +84,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "DailyBrief — Team reports made simple" },
+      { title: "DailyBrief — Vos rapports, sans les relancer" },
       {
         name: "description",
         content:
           "DailyBrief : créez, partagez et consultez les rapports quotidiens de votre équipe, en toute simplicité.",
       },
-      { property: "og:title", content: "DailyBrief — Team reports made simple" },
+      { property: "og:title", content: "DailyBrief — Vos rapports, sans les relancer" },
       {
         property: "og:description",
         content:
@@ -99,7 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "DailyBrief" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "DailyBrief — Team reports made simple" },
+      { name: "twitter:title", content: "DailyBrief — Vos rapports, sans les relancer" },
       { name: "twitter:description", content: "Créez, partagez et consultez les rapports quotidiens de votre équipe." },
       { name: "theme-color", content: "#0f172a" },
       { name: "apple-mobile-web-app-title", content: "DailyBrief" },

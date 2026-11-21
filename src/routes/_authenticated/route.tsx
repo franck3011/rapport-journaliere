@@ -401,7 +401,7 @@ function SidebarInner({
           >
             <div className="font-semibold leading-tight truncate">DailyBrief</div>
             <div className="text-xs text-muted-foreground leading-tight truncate">
-              Team reports made simple
+              Rapports d'équipe, simplement
             </div>
           </div>
         </Link>

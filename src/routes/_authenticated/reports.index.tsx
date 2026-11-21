@@ -67,7 +67,7 @@ import { fr } from "date-fns/locale";
 export const Route = createFileRoute("/_authenticated/reports/")({
   head: () => ({
     meta: [
-      { title: "Rapports journaliers — Lovable Rapports" },
+      { title: "Rapports journaliers — DailyBrief" },
       {
         name: "description",
         content: "Tous les rapports d'activités de votre équipe, triés par date.",

@@ -12,7 +12,7 @@ import { fr } from "date-fns/locale";
 export const Route = createFileRoute("/_authenticated/minutes/dashboard")({
   head: () => ({
     meta: [
-      { title: "Tableau de bord PV — Lovable Rapports" },
+      { title: "Tableau de bord PV — DailyBrief" },
       { name: "description", content: "Statistiques des procès-verbaux." },
     ],
   }),

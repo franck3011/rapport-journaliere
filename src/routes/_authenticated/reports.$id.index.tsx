@@ -80,7 +80,7 @@ import {
 export const Route = createFileRoute("/_authenticated/reports/$id/")({
   head: () => ({
     meta: [
-      { title: `Rapport — Lovable Rapports` },
+      { title: `Rapport — DailyBrief` },
       { name: "robots", content: "noindex" },
     ],
   }),

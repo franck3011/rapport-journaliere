@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/reports/new")({
 
   head: () => ({
     meta: [
-      { title: "Nouveau document — DailyBrief" },
+      { title: "Nouveau rapport — DailyBrief" },
       {
         name: "description",
         content: "Créez un rapport journalier ou une fiche de budget détaillée dans DailyBrief.",
