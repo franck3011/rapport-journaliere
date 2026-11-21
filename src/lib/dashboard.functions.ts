@@ -119,7 +119,10 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
         sb
           .from("expense_reports")
           .select("id", { count: "exact", head: true })
-          .in("status", ["submitted", "En attente"]),
+          .in("status", ["submitted", "En attente"])
+          // Scope entreprise : sans ce filtre, le compteur incluait les notes
+          // de frais de toutes les entreprises de la plateforme.
+          .eq("company_id", companyId ?? "00000000-0000-0000-0000-000000000000"),
       ),
       count(sb.from("documents").select("id", { count: "exact", head: true })),
       count(
