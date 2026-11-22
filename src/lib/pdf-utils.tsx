@@ -1,4 +1,5 @@
 import { getBrandingLogo } from "@/lib/branding";
+import { parseDescription, columnWidths } from "@/lib/table-block";
 import "./buffer-polyfill";
 import {
   Document,
@@ -112,6 +113,52 @@ type PdfImg = { id: string; url: string; caption?: string | null };
 
 /** Same layout as the web page: rows of 4 square photos, captions under each.
  *  A row never splits across two pages, so photos keep their order and position. */
+function PdfTable({ table }: { table: { headers: string[]; rows: string[][] } }) {
+  const widths = columnWidths(table.headers, table.rows);
+  return (
+    <View style={{ marginTop: 8, marginBottom: 8, borderWidth: 0.5, borderColor: "#cbd5e1" }}>
+      <View style={{ flexDirection: "row", backgroundColor: "#1e3a5f" }}>
+        {table.headers.map((header, index) => (
+          <Text
+            key={index}
+            style={{
+              width: `${Math.round(widths[index] * 100)}%`,
+              color: "#ffffff",
+              fontSize: 8,
+              fontWeight: 700,
+              padding: 3,
+            }}
+          >
+            {header}
+          </Text>
+        ))}
+      </View>
+      {table.rows.map((row, rowIndex) => (
+        <View
+          key={rowIndex}
+          style={{
+            flexDirection: "row",
+            backgroundColor: rowIndex % 2 === 1 ? "#f3f4f6" : "#ffffff",
+          }}
+        >
+          {table.headers.map((_, cellIndex) => (
+            <Text
+              key={cellIndex}
+              style={{
+                width: `${Math.round(widths[cellIndex] * 100)}%`,
+                fontSize: 8,
+                color: "#111827",
+                padding: 3,
+              }}
+            >
+              {row[cellIndex] ?? ""}
+            </Text>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
 function ImageGrid({ images }: { images: PdfImg[] }) {
   const list = images.filter((i) => i.url);
   const rows: PdfImg[][] = [];
@@ -192,7 +239,13 @@ function ReportPdfDocument({
         )}
 
         {report.sections.map((s) => {
-          const paras = s.description ? splitParagraphs(s.description) : [];
+          const blocks = s.description ? parseDescription(s.description) : [];
+          const textOnly = blocks
+            .filter((b: any) => b.type === "text")
+            .map((b: any) => b.value)
+            .join("\n\n");
+          const tables = blocks.filter((b: any) => b.type === "table") as any[];
+          const paras = textOnly ? splitParagraphs(textOnly) : [];
           const rest = s.title ? paras.slice(1) : paras;
           const list = s.images.filter((i) => i.url);
           const rows: PdfImg[][] = [];
@@ -205,6 +258,9 @@ function ReportPdfDocument({
                 {paras[0] ? <Text style={styles.para}>{paras[0]}</Text> : null}
               </View>
             ) : null,
+            ...tables.map((table, i) => (
+              <PdfTable key={`${s.id}-t${i}`} table={table} />
+            )),
             ...rest.map((p, i) => (
               <Text key={`${s.id}-p${i}`} style={styles.para}>{p}</Text>
             )),
