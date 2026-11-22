@@ -196,7 +196,7 @@ export const aiImprove = createServerFn({ method: "POST" })
     const text = await callAI({
       model: DEFAULT_MODEL,
       system:
-        "Tu es un assistant de rédaction professionnelle en français." + styleClause(data.style),
+        "Tu es un assistant de rédaction professionnelle en français." + " Tu peux produire des TABLEAUX quand le contenu est un inventaire, une liste de personnes, de matériel, de chiffres ou de comparaisons : écris-les en markdown (une ligne d'en-tête, une ligne de séparateur |---|---|, puis les lignes), chaque ligne commençant et finissant par « | »." + styleClause(data.style),
       messages: [
         {
           role: "user",

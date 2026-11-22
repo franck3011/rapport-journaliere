@@ -30,7 +30,7 @@ export type AssistantAnswer = {
   data: any;
 };
 
-type Section = { title: string; bullets: string[] };
+type Section = { title: string; bullets: string[]; description?: string };
 
 const DECISION_SYSTEM = `Tu es l'agent d'une application de rapports d'entreprise.
 Tu reçois une demande en français. Tu choisis UN SEUL outil et tu fournis ses arguments.
@@ -45,11 +45,11 @@ LECTURE
 ÉCRITURE
 - "creer_rapport" : crée un rapport (brouillon).
   args : { "titre": string, "introduction": string, "conclusion": string,
-           "sections": [{ "titre": string, "points": [string] }] }
+           "sections": [{ "titre": string, "points": [string], "description": "<texte libre ; pour un tableau utilise le format markdown | a | b |>" }] }
 - "creer_planning" : crée un planning (document de prévision).
   args : { "titre": string, "introduction": string, "conclusion": string,
            "du": "AAAA-MM-JJ", "au": "AAAA-MM-JJ",
-           "sections": [{ "titre": string, "points": [string] }] }
+           "sections": [{ "titre": string, "points": [string], "description": "<texte libre ; pour un tableau utilise le format markdown | a | b |>" }] }
 - "creer_action" : crée une action à suivre.
   args : { "titre": string, "details": string, "responsable": string,
            "echeance": "AAAA-MM-JJ", "priorite": "normal"|"high"|"urgent" }
@@ -89,6 +89,7 @@ function cleanSections(raw: any): Section[] {
     .slice(0, 12)
     .map((section: any) => ({
       title: String(section?.titre ?? section?.title ?? "").slice(0, 200),
+      description: String(section?.description ?? "").slice(0, 4000),
       bullets: (Array.isArray(section?.points ?? section?.bullets) ? (section.points ?? section.bullets) : [])
         .map((bullet: any) => String(bullet ?? "").trim())
         .filter(Boolean)
@@ -130,7 +131,7 @@ async function insertReport(
         payload.sections.map((section, index) => ({
           report_id: report.id,
           title: section.title,
-          description: "",
+          description: section.description ?? "",
           position: index,
         })),
       )
