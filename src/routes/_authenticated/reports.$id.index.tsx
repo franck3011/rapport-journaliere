@@ -50,6 +50,7 @@ import { getApprovalTimeline } from "@/lib/approvals.functions";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { downloadReportPdf, shareReportPdf } from "@/lib/pdf-utils";
+import { SectionDescription } from "@/components/reports/SectionDescription";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -505,7 +506,7 @@ export function ReportDetailPage({
       {r.sections.map((s) => (
         <section key={s.id} className="space-y-4">
           {s.title && <h2 className="text-xl font-semibold">{s.title}</h2>}
-          {s.description && <RichText text={s.description} />}
+          {s.description && <SectionDescription text={s.description} />}
           {s.bullets.length > 0 && (
             <ul className="list-disc pl-6 space-y-3">
               {s.bullets.map((b) => (
