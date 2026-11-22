@@ -79,7 +79,7 @@ export const extractReportFromPdf = createServerFn({ method: "POST" })
             {
               type: "text",
               text:
-                "Extrait la structure de ce rapport en JSON exact :\n" +
+                "Extrait la structure de ce rapport en JSON exact. Si le document contient des TABLEAUX, restitue-les ENTIEREMENT dans le champ description de la section, au format markdown (| Colonne A | Colonne B | puis |---|---| puis une ligne par enregistrement) : ne resume jamais un tableau, ne le convertis pas en phrases, et ne perds aucune ligne. :\n" +
                 REPORT_JSON_SHAPE +
                 "\nUtilise le français. Aucun texte hors JSON.",
             },
