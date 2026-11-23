@@ -456,12 +456,21 @@ const generateInput = z.object({
 export const aiGenerateFull = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => generateInput.parse(d))
-  .handler(async ({ data }): Promise<ExtractedReport> => {
-    const system =
+  .handler(async ({ data, context }): Promise<ExtractedReport> => {
+    let system =
       "Tu es un rédacteur de rapports professionnels en français. À partir de l'historique de conversation et du brouillon fourni, produis un rapport complet et structuré." +
       styleClause(data.style) +
       " Style note administrative fluide : paragraphes espacés qui s'enchaînent naturellement, puces si utile, gras sur les points clés. N'écris JAMAIS de titres ou étiquettes 'Introduction', 'Développement' ou 'Conclusion'. " +
       "Utilise `intro` pour le paragraphe d'ouverture, des sections sans titre générique (titre vide si inutile), `conclusion` pour la formule de clôture. Réponds STRICTEMENT en JSON exact.";
+    // Tableaux remplis avec les faits de l'entreprise, jamais inventes.
+    try {
+      const { buildReportDataContext } = await import("./ai-report-data.server");
+      system += await buildReportDataContext(context.supabase, context.userId);
+      system += "\n\nSi l'utilisateur demande un tableau, produis-le en markdown (| a | b |) a partir des donnees ci-dessus.";
+    } catch {
+      // sans contexte, la redaction reste possible
+    }
+
     const convo = data.history
       .map((m) => `${m.role === "assistant" ? "ASSISTANT" : "UTILISATEUR"} : ${m.content}`)
       .join("\n\n");
