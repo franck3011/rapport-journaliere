@@ -230,3 +230,37 @@ export const updateComplianceSettings = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+/**
+ * Historique des scores : la DERNIÈRE version de chaque période.
+ * Plusieurs recalculs pour une même période créent plusieurs lignes (append-only) ;
+ * la courbe ne doit en montrer qu'une, sinon elle afficherait des doublons.
+ */
+export const listComplianceHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }: any): Promise<any[]> => {
+    const supabase: any = context.supabase;
+    const { data: mem } = await supabase
+      .from("company_members")
+      .select("company_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!mem?.company_id) return [];
+
+    const { data } = await supabase
+      .from("compliance_scores")
+      .select("score, period_start, period_end, calculated_at")
+      .eq("entity_id", mem.company_id)
+      .order("period_end", { ascending: false })
+      .order("calculated_at", { ascending: false })
+      .limit(120);
+
+    const seen = new Set<string>();
+    const rows: any[] = [];
+    for (const row of (data ?? []) as any[]) {
+      const key = `${row.period_start}|${row.period_end}`;
+      if (seen.has(key)) continue; // on garde la plus récente (tri décroissant)
+      seen.add(key);
+      rows.push(row);
+    }
+    return rows.slice(0, 12).reverse();
+  });

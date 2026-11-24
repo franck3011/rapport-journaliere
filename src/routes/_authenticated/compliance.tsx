@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Gauge, Loader2, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
 import { ComplianceSettingsCard } from "@/components/compliance/ComplianceSettingsCard";
+import { ChartBlockView } from "@/components/reports/ChartBlockView";
 import {
   getLatestComplianceScore,
+  listComplianceHistory,
   recalculateComplianceScore,
 } from "@/lib/compliance/compliance.functions";
 
@@ -46,10 +48,16 @@ function CompliancePage() {
   const qc = useQueryClient();
   const getFn = useServerFn(getLatestComplianceScore);
   const recalcFn = useServerFn(recalculateComplianceScore);
+  const historyFn = useServerFn(listComplianceHistory);
 
   const { data, isLoading } = useQuery({
     queryKey: ["compliance-score"],
     queryFn: () => getFn(),
+  });
+
+  const { data: history } = useQuery({
+    queryKey: ["compliance-history"],
+    queryFn: () => historyFn(),
   });
 
   const recalc = useMutation({
@@ -67,6 +75,7 @@ function CompliancePage() {
       }
       toast.success(`Score calculé : ${result.score} / 100`);
       await qc.invalidateQueries({ queryKey: ["compliance-score"] });
+      await qc.invalidateQueries({ queryKey: ["compliance-history"] });
     },
     onError: (error: any) =>
       toast.error(error?.message ?? "Recalcul impossible"),
@@ -181,6 +190,20 @@ function CompliancePage() {
               );
             })}
           </div>
+
+          {Array.isArray(history) && history.length >= 2 && (
+            <ChartBlockView
+              block={{
+                type: "chart",
+                kind: "line",
+                title: "Évolution du score",
+                data: history.map((row: any) => ({
+                  label: String(row.period_end).slice(5),
+                  value: Number(row.score),
+                })),
+              }}
+            />
+          )}
 
           <ComplianceSettingsCard />
 
