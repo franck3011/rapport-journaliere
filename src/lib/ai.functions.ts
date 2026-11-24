@@ -465,8 +465,7 @@ export const aiGenerateFull = createServerFn({ method: "POST" })
     // Tableaux remplis avec les faits de l'entreprise, jamais inventes.
     try {
       const { buildReportDataContext } = await import("./ai-report-data.server");
-      system += await buildReportDataContext(context.supabase, context.userId);
-      system += "\n\nMISE EN FORME -- utilise TOUJOURS les outils, jamais du texte a baliser :\n- un tableau se construit avec les operations add_section / append_to_section (puces), JAMAIS en ecrivant du markdown a la main ;\n- un graphique se construit EXCLUSIVEMENT avec l'operation add_chart { kind: "bar"|"line"|"pie", title, data: [{ label, value }] }. N'ecris jamais de JSON, de balise ```chart, ni d'emoji dans le texte : le graphique passe par l'operation et par rien d'autre.\n- pour une evolution, une repartition, une comparaison de volumes ou un pourcentage, ajoute un add_chart.\n\n- Tableau : markdown, une ligne d'en-tete puis |---|---| puis les lignes.\n- Graphique : bloc clôturé ```chart contenant UNIQUEMENT un JSON du type {\"type\":\"bar|line|pie\",\"title\":\"...\",\"data\":[{\"label\":\"...\",\"value\":12}]}.\nUtilise un graphique des que la demande parle de courbe, d'evolution, de repartition, de comparaison de volumes ou de pourcentage. Les valeurs viennent des donnees ci-dessus. INTERDIT : representer un graphique avec des emojis, des fleches ou des caracteres de remplissage (📈 ▇ █ ░) -- c'est illisible et non imprimable. Un graphique est TOUJOURS un bloc ```chart valide, ou rien.";
+      system += "\n\nMISE EN FORME -- utilise TOUJOURS les outils : un tableau passe par add_section/append_to_section, un graphique par add_chart avec kind, title et data. N'ecris jamais de JSON, de balise, ni d'emoji dans le texte.";
     } catch {
       // sans contexte, la redaction reste possible
     }
