@@ -289,6 +289,9 @@ function ReportPdfDocument({
             ...tables.map((table, i) => (
               <PdfTable key={`${s.id}-t${i}`} table={table} />
             )),
+            ...charts.map((chart, i) => (
+              <PdfChart key={`${s.id}-c${i}`} chart={chart} />
+            )),
             ...rest.map((p, i) => (
               <Text key={`${s.id}-p${i}`} style={styles.para}>{p}</Text>
             )),
