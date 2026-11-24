@@ -4,9 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Gauge, Loader2, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Download, Gauge, Loader2, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
 import { ComplianceSettingsCard } from "@/components/compliance/ComplianceSettingsCard";
 import { ChartBlockView } from "@/components/reports/ChartBlockView";
+import { downloadComplianceAttestation } from "@/lib/compliance/attestation";
 import {
   getLatestComplianceScore,
   listComplianceHistory,
@@ -97,6 +98,7 @@ function CompliancePage() {
             Calculé à partir des données réelles de l'entreprise, jamais saisi à la main.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
         <Button onClick={() => recalc.mutate()} disabled={recalc.isPending}>
           {recalc.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -105,6 +107,25 @@ function CompliancePage() {
           )}
           Recalculer
         </Button>
+        {details && (
+          <Button
+            variant="outline"
+            onClick={() =>
+              void downloadComplianceAttestation({
+                companyName: (data as any)?.companyName ?? "Entreprise",
+                score,
+                periodStart: details.period?.start ?? "",
+                periodEnd: details.period?.end ?? "",
+                calculatedAt: String(data?.calculated_at ?? new Date().toISOString()),
+                details,
+              })
+            }
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Attestation PDF
+          </Button>
+        )}
+        </div>
       </header>
 
       {isLoading && (
