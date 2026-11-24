@@ -383,6 +383,7 @@ const PATCH_TOOLS =
   '- {"op":"remove_section","index"} (UNIQUEMENT sur demande explicite)\n' +
   '- {"op":"add_bullet","index","value"} | {"op":"update_bullet","index","bullet_index","value"} | {"op":"remove_bullet","index","bullet_index"}\n' +
   '- {"op":"replace_text","find","replace"} (correction précise d\'un mot ou d\'une phrase exacte)\n' +
+  '- {"op":"add_chart","index"?,"kind":"bar"|"line"|"pie","title"?,"data":[{"label","value"}]} : insère un GRAPHIQUE. Utilise-le dès qu\'on te demande une courbe, une évolution, une répartition, un camembert, un histogramme ou une comparaison de volumes. Si "index" est omis, une section est créée.\n' +
   "Les index sont 0-based et se réfèrent aux sections du brouillon fourni (numérotées [n]).";
 
 const AGENT_LOOP =
