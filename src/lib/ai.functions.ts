@@ -407,7 +407,7 @@ function draftForPrompt(d: z.infer<typeof reportShape> | undefined): string {
 export const aiChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requireAiQuota])
   .inputValidator((d: unknown) => chatInput.parse(d))
-  .handler(async ({ data }): Promise<AIChatReply> => {
+  .handler(async ({ data, context }): Promise<AIChatReply> => {
     const { applyPatch } = await import("./report-patch");
     const system =
       "Tu es l'agent de rédaction de rapports professionnels de DailyBrief, en français. " +
@@ -427,6 +427,35 @@ export const aiChat = createServerFn({ method: "POST" })
     const text = await callAI({ model: DEFAULT_MODEL, system, json: true, messages });
     const raw: any = parseJsonLoose(text) ?? {};
     const ops = Array.isArray(raw.operations) ? raw.operations : [];
+
+    // Les graphiques ne transportent jamais de chiffres : l'IA designe une
+    // metrique, l'application calcule la serie avant d'appliquer l'operation.
+    if (ops.length) {
+      const { computeMetric, METRICS } = await import("./metrics.server");
+      const { data: mem } = await context.supabase
+        .from("company_members")
+        .select("company_id")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const companyId: string | null = (mem as any)?.company_id ?? null;
+
+      for (const op of ops) {
+        if (!op || op.op !== "add_chart" || !op.metric) continue;
+        if (!(METRICS as readonly string[]).includes(String(op.metric))) {
+          op.metric = null;
+          continue;
+        }
+        const series = await computeMetric(
+          context.supabase,
+          companyId,
+          String(op.metric),
+          (op.period ?? "last_30_days") as any,
+          String(op.group_by ?? "day"),
+        );
+        op.data = series;
+        if (!op.title) op.title = String(op.metric).replace(/_/g, " ");
+      }
+    }
     const clar = raw.clarification && typeof raw.clarification === "object" && raw.clarification.question
       ? { question: String(raw.clarification.question), options: (Array.isArray(raw.clarification.options) ? raw.clarification.options : []).map(String).slice(0, 4) }
       : null;
