@@ -113,6 +113,33 @@ type PdfImg = { id: string; url: string; caption?: string | null };
 
 /** Same layout as the web page: rows of 4 square photos, captions under each.
  *  A row never splits across two pages, so photos keep their order and position. */
+function PdfChart({ chart }: { chart: { title?: string; data: { label: string; value: number }[] } }) {
+  const max = Math.max(...chart.data.map((entry) => entry.value), 1);
+  return (
+    <View style={{ marginTop: 8, marginBottom: 8 }}>
+      {chart.title ? (
+        <Text style={{ fontSize: 9, fontWeight: 700, marginBottom: 4 }}>{chart.title}</Text>
+      ) : null}
+      {chart.data.map((entry, index) => (
+        <View key={index} style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
+          <Text style={{ width: "32%", fontSize: 8, color: "#111827" }}>{entry.label}</Text>
+          <View style={{ width: "58%", flexDirection: "row" }}>
+            <View
+              style={{
+                width: `${Math.max(2, Math.round((entry.value / max) * 100))}%`,
+                height: 8,
+                backgroundColor: "#1e3a5f",
+              }}
+            />
+          </View>
+          <Text style={{ width: "10%", fontSize: 8, textAlign: "right", color: "#1e3a5f" }}>
+            {entry.value}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 function PdfTable({ table }: { table: { headers: string[]; rows: string[][] } }) {
   const widths = columnWidths(table.headers, table.rows);
   return (
@@ -245,6 +272,7 @@ function ReportPdfDocument({
             .map((b: any) => b.value)
             .join("\n\n");
           const tables = blocks.filter((b: any) => b.type === "table") as any[];
+          const charts = blocks.filter((b: any) => b.type === "chart") as any[];
           const paras = textOnly ? splitParagraphs(textOnly) : [];
           const rest = s.title ? paras.slice(1) : paras;
           const list = s.images.filter((i) => i.url);
