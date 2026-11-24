@@ -101,6 +101,17 @@ export const APP_MODULES: AppModule[] = [
     screens: [{ to: "/objectives", label: "Objectifs", icon: Target }],
   },
   {
+    code: "compliance",
+    name: "Conformité",
+    description:
+      "Score de 0 à 100 calculé sur les données réelles : ponctualité, complétude, incidents, régularité.",
+    icon: Gauge,
+    tone: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
+    entry: "/compliance",
+    core: false,
+    screens: [{ to: "/compliance", label: "Conformité", icon: Gauge }],
+  },
+  {
     code: "planning",
     name: "Planning",
     pinned: true,

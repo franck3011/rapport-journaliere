@@ -12,6 +12,7 @@ export type FeatureCode =
   | "rapports"
   | "actions"
   | "objectifs"
+  | "conformite"
   | "messagerie"
   | "export_excel"
   | "roles_audit"
@@ -30,6 +31,7 @@ export const FEATURES: FeatureDefinition[] = [
   { code: "rapports", label: "Rapports journaliers illimités", enforced: true },
   { code: "actions", label: "Actions et suivi des décisions", enforced: true, module: "actions" },
   { code: "objectifs", label: "Objectifs et indicateurs", enforced: true, module: "objectives" },
+  { code: "conformite", label: "Score de conformité", enforced: true, module: "compliance" },
   { code: "messagerie", label: "Messagerie unifiée", enforced: true, module: "mail" },
   { code: "export_excel", label: "Export Excel / CSV", enforced: true },
   { code: "roles_audit", label: "Rôles et journal d'audit", enforced: true },
