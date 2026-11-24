@@ -118,6 +118,7 @@ function CompliancePage() {
                 periodEnd: details.period?.end ?? "",
                 calculatedAt: String(data?.calculated_at ?? new Date().toISOString()),
                 details,
+                verifyCode: (data as any)?.verify_code ?? null,
               })
             }
           >

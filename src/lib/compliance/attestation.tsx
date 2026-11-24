@@ -44,6 +44,7 @@ export type AttestationInput = {
   periodEnd: string;
   calculatedAt: string;
   details: any;
+  verifyCode?: string | null;
 };
 
 function fr(value: number): string {
@@ -146,7 +147,10 @@ function Attestation({ input }: { input: AttestationInput }) {
         </Text>
 
         <Text style={{ marginTop: 18, fontSize: 9, color: "#374151" }}>
-          Référence du document : {attestationCode(input)}
+          Référence du document : {input.verifyCode || attestationCode(input)}
+        </Text>
+        <Text style={{ marginTop: 4, fontSize: 9, color: "#374151" }}>
+          Vérification : {typeof window !== "undefined" ? window.location.origin : ""}/verifier/{input.verifyCode || attestationCode(input)}
         </Text>
 
         <Text style={styles.footer}>

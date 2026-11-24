@@ -112,6 +112,7 @@ export const recalculateComplianceScore = createServerFn({ method: "POST" })
       score: result.score,
       details: result.details,
       calculated_by: userId,
+      verify_code: globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase(),
     });
     if (error) throw new Error(error.message);
 
@@ -135,7 +136,7 @@ export const getLatestComplianceScore = createServerFn({ method: "GET" })
 
     const { data } = await supabase
       .from("compliance_scores")
-      .select("score, details, period_start, period_end, calculated_at")
+      .select("score, details, period_start, period_end, calculated_at, verify_code")
       .eq("entity_id", mem.company_id)
       .order("calculated_at", { ascending: false })
       .limit(1)

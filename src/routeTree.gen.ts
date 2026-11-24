@@ -29,6 +29,7 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as VerifierCodeRouteImport } from './routes/verifier.$code'
 import { Route as AuthenticatedAiCenterIndexRouteImport } from './routes/_authenticated/ai-center.index'
 import { Route as AuthenticatedAiCenterIdRouteImport } from './routes/_authenticated/ai-center.$id'
 import { Route as AuthenticatedCompanyIndexRouteImport } from './routes/_authenticated/company.index'
@@ -172,6 +173,11 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
 const ShareTokenRoute = ShareTokenRouteImport.update({
   id: '/share/$token',
   path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifierCodeRoute = VerifierCodeRouteImport.update({
+  id: '/verifier/$code',
+  path: '/verifier/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAiCenterIndexRoute =
@@ -451,6 +457,7 @@ export interface FileRoutesByFullPath {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/share/$token': typeof ShareTokenRoute
+  '/verifier/$code': typeof VerifierCodeRoute
   '/ai-center/$id': typeof AuthenticatedAiCenterIdRoute
   '/company/applications': typeof AuthenticatedCompanyApplicationsRoute
   '/company/hierarchie': typeof AuthenticatedCompanyHierarchieRoute
@@ -515,6 +522,7 @@ export interface FileRoutesByTo {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/share/$token': typeof ShareTokenRoute
+  '/verifier/$code': typeof VerifierCodeRoute
   '/ai-center/$id': typeof AuthenticatedAiCenterIdRoute
   '/company/applications': typeof AuthenticatedCompanyApplicationsRoute
   '/company/hierarchie': typeof AuthenticatedCompanyHierarchieRoute
@@ -581,6 +589,7 @@ export interface FileRoutesById {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/share/$token': typeof ShareTokenRoute
+  '/verifier/$code': typeof VerifierCodeRoute
   '/_authenticated/ai-center/$id': typeof AuthenticatedAiCenterIdRoute
   '/_authenticated/company/applications': typeof AuthenticatedCompanyApplicationsRoute
   '/_authenticated/company/hierarchie': typeof AuthenticatedCompanyHierarchieRoute
@@ -649,6 +658,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/share/$token'
+    | '/verifier/$code'
     | '/ai-center/$id'
     | '/company/applications'
     | '/company/hierarchie'
@@ -713,6 +723,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/share/$token'
+    | '/verifier/$code'
     | '/ai-center/$id'
     | '/company/applications'
     | '/company/hierarchie'
@@ -778,6 +789,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/share/$token'
+    | '/verifier/$code'
     | '/_authenticated/ai-center/$id'
     | '/_authenticated/company/applications'
     | '/_authenticated/company/hierarchie'
@@ -835,6 +847,7 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   ShareTokenRoute: typeof ShareTokenRoute
+  VerifierCodeRoute: typeof VerifierCodeRoute
   ApiPublicActionsRemindersRoute: typeof ApiPublicActionsRemindersRoute
   ApiPublicAiSpeakRoute: typeof ApiPublicAiSpeakRoute
   ApiPublicAiTranscribeRoute: typeof ApiPublicAiTranscribeRoute
@@ -982,6 +995,13 @@ declare module '@tanstack/react-router' {
       path: '/share/$token'
       fullPath: '/share/$token'
       preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verifier/$code': {
+      id: '/verifier/$code'
+      path: '/verifier/$code'
+      fullPath: '/verifier/$code'
+      preLoaderRoute: typeof VerifierCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/ai-center/': {
@@ -1467,6 +1487,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   ShareTokenRoute: ShareTokenRoute,
+  VerifierCodeRoute: VerifierCodeRoute,
   ApiPublicActionsRemindersRoute: ApiPublicActionsRemindersRoute,
   ApiPublicAiSpeakRoute: ApiPublicAiSpeakRoute,
   ApiPublicAiTranscribeRoute: ApiPublicAiTranscribeRoute,
