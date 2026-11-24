@@ -466,7 +466,7 @@ export const aiGenerateFull = createServerFn({ method: "POST" })
     try {
       const { buildReportDataContext } = await import("./ai-report-data.server");
       system += await buildReportDataContext(context.supabase, context.userId);
-      system += "\n\nMISE EN FORME : choisis le format adapte a la demande.\n- Tableau : markdown, une ligne d'en-tete puis |---|---| puis les lignes.\n- Graphique : bloc clôturé ```chart contenant UNIQUEMENT un JSON du type {\"type\":\"bar|line|pie\",\"title\":\"...\",\"data\":[{\"label\":\"...\",\"value\":12}]}.\nUtilise un graphique des que la demande parle de courbe, d'evolution, de repartition, de comparaison de volumes ou de pourcentage. Les valeurs viennent des donnees ci-dessus.";
+      system += "\n\nMISE EN FORME : choisis le format adapte a la demande.\n- Tableau : markdown, une ligne d'en-tete puis |---|---| puis les lignes.\n- Graphique : bloc clôturé ```chart contenant UNIQUEMENT un JSON du type {\"type\":\"bar|line|pie\",\"title\":\"...\",\"data\":[{\"label\":\"...\",\"value\":12}]}.\nUtilise un graphique des que la demande parle de courbe, d'evolution, de repartition, de comparaison de volumes ou de pourcentage. Les valeurs viennent des donnees ci-dessus. INTERDIT : representer un graphique avec des emojis, des fleches ou des caracteres de remplissage (📈 ▇ █ ░) -- c'est illisible et non imprimable. Un graphique est TOUJOURS un bloc ```chart valide, ou rien.";
     } catch {
       // sans contexte, la redaction reste possible
     }
