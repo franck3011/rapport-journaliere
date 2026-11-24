@@ -143,3 +143,90 @@ export const getLatestComplianceScore = createServerFn({ method: "GET" })
 
     return data ?? null;
   });
+
+/** Réglages du score + droit de modification de l'appelant. */
+export const getComplianceSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }: any): Promise<any> => {
+    const supabase: any = context.supabase;
+    const { data: mem } = await supabase
+      .from("company_members")
+      .select("company_id, role")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!mem?.company_id) return null;
+
+    const { data: company } = await supabase
+      .from("companies")
+      .select("owner_id")
+      .eq("id", mem.company_id)
+      .maybeSingle();
+
+    const { data: settings } = await supabase
+      .from("compliance_settings")
+      .select("*")
+      .eq("entity_id", mem.company_id)
+      .maybeSingle();
+
+    const isManager =
+      company?.owner_id === context.userId ||
+      ["owner", "admin"].includes(String(mem.role ?? ""));
+
+    return { settings: settings ?? null, isManager };
+  });
+
+const SettingsInput = z.object({
+  weight_punctuality: z.number().int().min(0).max(100),
+  weight_completeness: z.number().int().min(0).max(100),
+  weight_incidents: z.number().int().min(0).max(100),
+  weight_regularity: z.number().int().min(0).max(100),
+  report_due_hour: z.number().int().min(0).max(23),
+  incident_sla_days: z.number().int().min(1).max(90),
+  grace_days: z.number().int().min(0).max(15),
+  min_sample: z.number().int().min(5).max(1000),
+});
+
+/**
+ * Mise à jour des réglages. Les quatre poids sont enregistrés EN UNE FOIS :
+ * la contrainte SQL exige une somme de 100, une sauvegarde poids par poids
+ * échouerait à chaque étape intermédiaire.
+ */
+export const updateComplianceSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => SettingsInput.parse(d))
+  .handler(async ({ data, context }: any): Promise<any> => {
+    const supabase: any = context.supabase;
+    const total =
+      data.weight_punctuality +
+      data.weight_completeness +
+      data.weight_incidents +
+      data.weight_regularity;
+    if (total !== 100) {
+      throw new Error(`La somme des pondérations doit valoir 100 (actuellement ${total}).`);
+    }
+
+    const { data: mem } = await supabase
+      .from("company_members")
+      .select("company_id, role")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!mem?.company_id) throw new Error("Vous devez appartenir à une entreprise.");
+
+    const { data: company } = await supabase
+      .from("companies")
+      .select("owner_id")
+      .eq("id", mem.company_id)
+      .maybeSingle();
+    const isManager =
+      company?.owner_id === context.userId ||
+      ["owner", "admin"].includes(String(mem.role ?? ""));
+    if (!isManager) throw new Error("Seul un gestionnaire peut modifier les pondérations.");
+
+    const { error } = await supabase
+      .from("compliance_settings")
+      .update({ ...data, updated_by: context.userId, updated_at: new Date().toISOString() })
+      .eq("entity_id", mem.company_id);
+    if (error) throw new Error(error.message);
+
+    return { ok: true };
+  });

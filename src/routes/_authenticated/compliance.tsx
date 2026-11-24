@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Gauge, Loader2, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ComplianceSettingsCard } from "@/components/compliance/ComplianceSettingsCard";
 import {
   getLatestComplianceScore,
   recalculateComplianceScore,
@@ -180,6 +181,8 @@ function CompliancePage() {
               );
             })}
           </div>
+
+          <ComplianceSettingsCard />
 
           {data?.calculated_at && (
             <p className="text-xs text-muted-foreground">
