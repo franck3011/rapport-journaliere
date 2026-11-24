@@ -17,7 +17,15 @@ export async function buildReportDataContext(
     .maybeSingle();
   const companyId: string | undefined = mem?.company_id;
 
-  const [members, reports, actions, objectives] = await Promise.all([
+  const [members, reports, actions, objectives, expenses] = await Promise.all([
+    companyId
+      ? supabase
+          .from("expense_reports")
+          .select("title, category, amount, status, expense_date")
+          .eq("company_id", companyId)
+          .order("expense_date", { ascending: false })
+          .limit(200)
+      : Promise.resolve({ data: [] as any[] }),
     companyId
       ? supabase.from("company_members").select("user_id").eq("company_id", companyId)
       : Promise.resolve({ data: [] as any[] }),
@@ -61,6 +69,20 @@ export async function buildReportDataContext(
 
   const lines: string[] = [];
   lines.push("DONNÉES RÉELLES DE L'ENTREPRISE (à utiliser pour remplir les tableaux) :");
+
+  // Agrégat des dépenses : base des camemberts et histogrammes.
+  const byCategory = new Map<string, number>();
+  for (const row of ((expenses.data ?? []) as any[])) {
+    const category = String(row.category ?? "Sans catégorie");
+    byCategory.set(category, (byCategory.get(category) ?? 0) + Number(row.amount ?? 0));
+  }
+  lines.push(
+    `- Dépenses par catégorie (montants réels) : ${
+      Array.from(byCategory.entries())
+        .map(([name, total]) => `${name} = ${total}`)
+        .join(" ; ") || "aucune"
+    }`,
+  );
 
   const memberNames = Array.from(userIds)
     .map((id) => nameOf.get(id) ?? "Membre sans nom")
