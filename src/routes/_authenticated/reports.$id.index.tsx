@@ -476,7 +476,11 @@ export function ReportDetailPage({
         <div className="flex items-center justify-between gap-4 mb-3">
           <img src="/logo-mbc.png" alt="Logo MBC" className="h-14 w-auto" />
           <div className="text-sm text-primary font-medium">
-            {formatLongDate(r.report_date)}
+            {formatLongDate(r.report_date)}{
+            r.created_at
+              ? ` · ${new Date(r.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+              : ""
+          }
           </div>
         </div>
         <h1 className="text-3xl font-bold tracking-tight mt-1">{r.title}</h1>
