@@ -1,14 +1,25 @@
 /**
- * Tableaux dans les rapports.
+ * Blocs visuels des rapports.
  *
- * Convention légère : une suite de lignes commençant par « | » forme un tableau.
- *   | Colonne A | Colonne B |
- *   |---|---|
- *   | valeur | valeur |
+ * En plus des tableaux markdown, une section peut contenir des blocs ::
  *
- * Aucune dépendance : le même analyseur sert à l'écran et au PDF, ce qui garantit
- * que les deux rendus montrent exactement la même chose.
+ *   ```chart
+ *   { "type": "bar", "title": "Matériel par service",
+ *     "data": [{ "label": "Compta", "value": 12 }, { "label": "Technique", "value": 8 }] }
+ *   ```
+ *
+ * Types acceptés : bar, line, pie. Aucune dépendance ici : l'analyse est faite
+ * une fois pour toutes, l'écran et le PDF consomment le même résultat.
  */
+
+export type ChartKind = "bar" | "line" | "pie";
+
+export type ChartBlock = {
+  type: "chart";
+  kind: ChartKind;
+  title: string;
+  data: { label: string; value: number }[];
+};
 
 export type TableBlock = {
   type: "table";
@@ -18,7 +29,7 @@ export type TableBlock = {
 
 export type TextBlock = { type: "text"; value: string };
 
-export type DescriptionBlock = TableBlock | TextBlock;
+export type DescriptionBlock = TableBlock | ChartBlock | TextBlock;
 
 function splitRow(line: string): string[] {
   const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
@@ -29,7 +40,27 @@ function isSeparator(line: string): boolean {
   return /^\|?[\s:-]*-[\s|:-]*$/.test(line.trim()) && line.includes("-");
 }
 
-/** Découpe une description en blocs texte et tableaux. */
+function parseChart(json: string): ChartBlock | null {
+  try {
+    const parsed = JSON.parse(json);
+    const kind: ChartKind =
+      parsed?.type === "line" ? "line" : parsed?.type === "pie" ? "pie" : "bar";
+    const data = Array.isArray(parsed?.data)
+      ? parsed.data
+          .map((entry: any) => ({
+            label: String(entry?.label ?? entry?.name ?? "").slice(0, 60),
+            value: Number(entry?.value ?? 0),
+          }))
+          .filter((entry: any) => entry.label && Number.isFinite(entry.value))
+      : [];
+    if (data.length === 0) return null;
+    return { type: "chart", kind, title: String(parsed?.title ?? ""), data };
+  } catch {
+    return null;
+  }
+}
+
+/** Découpe une description en blocs texte, tableaux et graphiques. */
 export function parseDescription(text: string): DescriptionBlock[] {
   const blocks: DescriptionBlock[] = [];
   const lines = (text ?? "").split(/\r?\n/);
@@ -43,8 +74,27 @@ export function parseDescription(text: string): DescriptionBlock[] {
 
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
-    const isTableLine = line.trim().startsWith("|") && line.trim().endsWith("|");
+    const trimmed = line.trim();
 
+    // Bloc graphique
+    if (trimmed.startsWith("```chart")) {
+      const body: string[] = [];
+      index++;
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        body.push(lines[index]);
+        index++;
+      }
+      const chart = parseChart(body.join("\n"));
+      if (chart) {
+        flushText();
+        blocks.push(chart);
+      } else {
+        buffer.push(...body);
+      }
+      continue;
+    }
+
+    const isTableLine = trimmed.startsWith("|") && trimmed.endsWith("|");
     if (!isTableLine) {
       buffer.push(line);
       continue;
@@ -52,7 +102,6 @@ export function parseDescription(text: string): DescriptionBlock[] {
 
     flushText();
 
-    // Une suite de lignes de tableau : en-tête, séparateur éventuel, puis corps.
     const rows: string[][] = [];
     let headers: string[] = [];
     while (

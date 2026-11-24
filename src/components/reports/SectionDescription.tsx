@@ -1,4 +1,5 @@
 import { parseDescription } from "@/lib/table-block";
+import { ChartBlockView } from "@/components/reports/ChartBlockView";
 
 /**
  * Rendu d'une description de section : paragraphes de texte et tableaux.
@@ -10,6 +11,10 @@ export function SectionDescription({ text }: { text: string }) {
   return (
     <div className="space-y-3">
       {blocks.map((block, index) => {
+        if (block.type === "chart") {
+          return <ChartBlockView key={index} block={block} />;
+        }
+
         if (block.type === "text") {
           return (
             <div key={index} className="whitespace-pre-wrap text-[15px] leading-relaxed">
