@@ -40,6 +40,14 @@ function isSeparator(line: string): boolean {
   return /^\|?[\s:-]*-[\s|:-]*$/.test(line.trim()) && line.includes("-");
 }
 
+function toNumber(value: unknown): number {
+  if (typeof value === "number") return value;
+  const cleaned = String(value ?? "")
+    .replace(/[^\d.,-]/g, "")
+    .replace(/\s/g, "")
+    .replace(",", ".");
+  return Number(cleaned);
+}
 function parseChart(json: string): ChartBlock | null {
   try {
     const parsed = JSON.parse(json);
@@ -52,7 +60,7 @@ function parseChart(json: string): ChartBlock | null {
           .filter((entry: any) => entry && typeof entry === "object" && "label" in entry)
           .map((entry: any) => ({
             label: String(entry.label ?? "").slice(0, 60),
-            value: Number(entry.value ?? 0),
+            value: toNumber(entry.value),
           }))
       : [];
 
@@ -63,7 +71,7 @@ function parseChart(json: string): ChartBlock | null {
       const values = Array.isArray(series?.data) ? series.data : [];
       data = labels.map((label: any, index: number) => ({
         label: String(label ?? "").slice(0, 60),
-        value: Number(values[index] ?? 0),
+        value: toNumber(values[index]),
       }));
     }
 

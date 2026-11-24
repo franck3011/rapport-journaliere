@@ -72,7 +72,11 @@ export function applyPatch(input: Partial<Draft> | undefined, ops: PatchOp[]): P
         ? o.data
             .map((point: any) => ({
               label: s(point?.label).slice(0, 60),
-              value: Number(point?.value),
+              value: (() => {
+                const raw = point?.value;
+                if (typeof raw === "number") return raw;
+                return Number(String(raw ?? "").replace(/[^\d.,-]/g, "").replace(/\s/g, "").replace(",", "."));
+              })(),
             }))
             .filter((point: any) => point.label && Number.isFinite(point.value))
         : [];

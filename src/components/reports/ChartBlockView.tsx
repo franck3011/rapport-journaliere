@@ -20,6 +20,7 @@ const COLORS = ["#1e3a5f", "#2f6f8f", "#4a9bb8", "#7cc3d6", "#a9d9e5", "#cfe9f0"
 /** Rendu d'un bloc graphique (barres, courbe ou camembert). */
 export function ChartBlockView({ block }: { block: ChartBlock }) {
   const height = 260;
+  const data = block.kind === "pie" ? block.data.filter((entry) => entry.value > 0) : block.data;
 
   return (
     <figure className="rounded-lg border bg-card p-3">
@@ -32,7 +33,7 @@ export function ChartBlockView({ block }: { block: ChartBlock }) {
           {block.kind === "pie" ? (
             <PieChart>
               <Pie
-                data={block.data}
+                data={data}
                 dataKey="value"
                 nameKey="label"
                 outerRadius={90}
@@ -46,7 +47,7 @@ export function ChartBlockView({ block }: { block: ChartBlock }) {
               <Legend />
             </PieChart>
           ) : block.kind === "line" ? (
-            <LineChart data={block.data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+            <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
@@ -54,7 +55,7 @@ export function ChartBlockView({ block }: { block: ChartBlock }) {
               <Line type="monotone" dataKey="value" stroke="#1e3a5f" strokeWidth={2} />
             </LineChart>
           ) : (
-            <BarChart data={block.data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+            <BarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
