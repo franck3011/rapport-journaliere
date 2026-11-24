@@ -18,7 +18,14 @@ export type PatchOp =
   | { op: "add_bullet"; index: number; value: string }
   | { op: "update_bullet"; index: number; bullet_index: number; value: string }
   | { op: "remove_bullet"; index: number; bullet_index: number }
-  | { op: "replace_text"; find: string; replace: string };
+  | { op: "replace_text"; find: string; replace: string }
+  | {
+      op: "add_chart";
+      index?: number;
+      kind: "bar" | "line" | "pie";
+      title?: string;
+      data: { label: string; value: number }[];
+    };
 
 export type PatchResult = { draft: Draft; applied: string[]; skipped: string[] };
 
@@ -60,7 +67,34 @@ export function applyPatch(input: Partial<Draft> | undefined, ops: PatchOp[]): P
       case "append_conclusion":
         if (s(o.value).trim()) { d.conclusion = join(d.conclusion, o.value); applied.push("Ajout dans la conclusion"); } else skipped.push(o.op);
         break;
-      case "add_section": {
+      case "add_chart": {
+      const entries = Array.isArray(o.data)
+        ? o.data
+            .map((point: any) => ({
+              label: s(point?.label).slice(0, 60),
+              value: Number(point?.value),
+            }))
+            .filter((point: any) => point.label && Number.isFinite(point.value))
+        : [];
+      if (entries.length === 0) {
+        skipped.push("Graphique ignoré : aucune donnée");
+        break;
+      }
+      const payload = {
+        type: o.kind === "line" ? "line" : o.kind === "pie" ? "pie" : "bar",
+        title: s(o.title),
+        data: entries,
+      };
+      const block = "```chart\n" + JSON.stringify(payload) + "\n```";
+      const target = typeof o.index === "number" ? d.sections[o.index] : undefined;
+      if (target) {
+        target.description = join(s(target.description), block);
+      } else {
+        d.sections.push({ title: s(o.title) || "Graphique", description: block, bullets: [] });
+      }
+      applied.push("Graphique inséré");
+      break;
+    }    case "add_section": {
         const ns = { title: s(o.title).trim(), description: s(o.description).trim(), bullets: (o.bullets ?? []).map(s).filter(Boolean) };
         if (!ns.title && !ns.description && !ns.bullets.length) { skipped.push(o.op); break; }
         d.sections.push(ns); // always appended: existing sections keep their photos
