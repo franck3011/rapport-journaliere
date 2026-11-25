@@ -27,6 +27,7 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedUsageRouteImport } from './routes/_authenticated/usage'
+import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
@@ -166,6 +167,11 @@ const AuthenticatedUsageRoute = AuthenticatedUsageRouteImport.update({
   id: '/usage',
   path: '/usage',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiVersionRoute = ApiVersionRouteImport.update({
+  id: '/api/version',
+  path: '/api/version',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -467,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/usage': typeof AuthenticatedUsageRoute
+  '/api/version': typeof ApiVersionRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -534,6 +541,7 @@ export interface FileRoutesByTo {
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/usage': typeof AuthenticatedUsageRoute
+  '/api/version': typeof ApiVersionRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -603,6 +611,7 @@ export interface FileRoutesById {
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/usage': typeof AuthenticatedUsageRoute
+  '/api/version': typeof ApiVersionRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -674,6 +683,7 @@ export interface FileRouteTypes {
     | '/plans'
     | '/profile'
     | '/usage'
+    | '/api/version'
     | '/invite/$token'
     | '/legal/privacy'
     | '/legal/terms'
@@ -741,6 +751,7 @@ export interface FileRouteTypes {
     | '/plans'
     | '/profile'
     | '/usage'
+    | '/api/version'
     | '/invite/$token'
     | '/legal/privacy'
     | '/legal/terms'
@@ -809,6 +820,7 @@ export interface FileRouteTypes {
     | '/_authenticated/plans'
     | '/_authenticated/profile'
     | '/_authenticated/usage'
+    | '/api/version'
     | '/invite/$token'
     | '/legal/privacy'
     | '/legal/terms'
@@ -867,6 +879,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiVersionRoute: typeof ApiVersionRoute
   InviteTokenRoute: typeof InviteTokenRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
@@ -1006,6 +1019,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/usage'
       preLoaderRoute: typeof AuthenticatedUsageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/version': {
+      id: '/api/version'
+      path: '/api/version'
+      fullPath: '/api/version'
+      preLoaderRoute: typeof ApiVersionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -1525,6 +1545,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiVersionRoute: ApiVersionRoute,
   InviteTokenRoute: InviteTokenRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
