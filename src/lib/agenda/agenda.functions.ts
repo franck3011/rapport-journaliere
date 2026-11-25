@@ -218,6 +218,8 @@ export const createAgendaEvent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }: any): Promise<{ id: string }> => {
     const supabase: any = context.supabase;
     const companyId = await companyOf(supabase, context.userId);
+    const { assertCanWrite } = await import("@/lib/subscription.server");
+    await assertCanWrite({ supabase, userId: context.userId });
 
     const { data: row, error } = await supabase
       .from("company_agenda_events")

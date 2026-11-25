@@ -517,6 +517,11 @@ export const upsertReport = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => reportInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    // Essai terminé : création refusée, lecture toujours permise.
+    if (!data.id) {
+      const { assertCanWrite } = await import("./subscription.server");
+      await assertCanWrite({ supabase, userId });
+    }
     let reportId: string;
     const docFields = docFieldsOf(data);
     await assertStoragePathsAllowed(supabase, userId, data.id ?? null, [

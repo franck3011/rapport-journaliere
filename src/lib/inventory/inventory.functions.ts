@@ -95,6 +95,8 @@ export const saveInventoryItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => ItemInput.parse(d))
   .handler(async ({ data, context }: any): Promise<{ id: string }> => {
     const companyId = await myCompanyId(context.supabase, context.userId);
+    const { assertCanWrite } = await import("@/lib/subscription.server");
+    await assertCanWrite({ supabase: context.supabase, userId: context.userId });
     const payload = {
       company_id: companyId,
       department_id: data.departmentId ?? null,
