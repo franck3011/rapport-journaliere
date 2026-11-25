@@ -19,6 +19,8 @@ export type AgendaItem = {
   kind: string;
   source: "manuel" | "action" | "jalon" | "mail" | "absence";
   recurring?: boolean;
+  /** identifiant reel en base, pour la suppression */
+  refId?: string;
   editable: boolean;
 };
 
@@ -93,6 +95,7 @@ export const listAgenda = createServerFn({ method: "GET" })
           source: "manuel",
           recurring: row.recurrence !== "none",
           editable: true,
+          refId: row.id,
         });
       }
     }

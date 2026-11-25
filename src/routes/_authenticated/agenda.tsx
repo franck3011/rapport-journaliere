@@ -100,7 +100,7 @@ function AgendaPage() {
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteFn({ data: { id: id.split("-")[0] } }),
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: async () => {
       toast.success("Événement supprimé");
       await qc.invalidateQueries({ queryKey: ["agenda"] });
@@ -258,7 +258,7 @@ function AgendaPage() {
                     size="sm"
                     variant="ghost"
                     className="text-destructive"
-                    onClick={() => remove.mutate(item.id)}
+                    onClick={() => remove.mutate(item.refId ?? item.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
