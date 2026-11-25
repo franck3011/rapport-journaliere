@@ -140,7 +140,7 @@ export function CompanyChatWidget() {
   return (
     <>
       {open && (
-        <div className="fixed bottom-20 right-3 z-50 flex h-[min(520px,calc(100dvh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl">
+        <div className="fixed bottom-20 right-3 z-50 flex h-[min(70vh,520px,calc(100dvh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl">
           <div className="flex items-center gap-2 border-b bg-primary px-3 py-2.5 text-primary-foreground">
             {peer && (
               <button onClick={() => setPeer(null)} aria-label="Retour" className="rounded p-1 hover:bg-primary-foreground/10">
@@ -242,7 +242,7 @@ export function CompanyChatWidget() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Tchat d'entreprise"
-        className="fixed bottom-4 right-3 z-50 flex h-13 w-13 items-center justify-center rounded-full bg-primary p-3.5 text-primary-foreground shadow-lg transition hover:scale-105"
+        className="fixed bottom-4 right-3 z-40 flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-primary p-3.5 text-primary-foreground shadow-lg transition hover:scale-105"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
         {!open && total > 0 && (

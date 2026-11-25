@@ -136,7 +136,7 @@ function AuthenticatedLayout() {
     return (
       <div className="min-h-dvh bg-muted/30 flex flex-col">
         <TopBar email={user.email ?? ""} onSignOut={handleSignOut} />
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 pb-28 md:pb-0">
           <SubscriptionBanner />
           <Outlet />
         </main>
@@ -221,7 +221,7 @@ function AuthenticatedLayout() {
             DailyBrief
           </Link>
         </header>
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 pb-28 md:pb-0">
           <SubscriptionBanner />
           <Outlet />
         </main>
