@@ -22,7 +22,7 @@ export function PendingPlansPanel() {
   const activateFn = useServerFn(activatePendingPlan);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const { data: pending = [] } = useQuery({
+  const { data: pending = [], error } = useQuery({
     queryKey: ["admin-pending-plans"],
     queryFn: () => listFn(),
   });
@@ -39,7 +39,7 @@ export function PendingPlansPanel() {
     onSettled: () => setBusy(null),
   });
 
-  if ((pending as any[]).length === 0) return null;
+
 
   return (
     <Card className="mb-4">
@@ -50,6 +50,23 @@ export function PendingPlansPanel() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
+        {(pending as any[]).length === 0 && (
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              Aucune demande en attente.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Pour qu'une demande apparaisse : connectez-vous comme propriétaire de
+              l'entreprise, ouvrez <span className="font-medium">Plans</span> et choisissez une
+              formule. Elle sera ensuite listée ici.
+            </p>
+            {error && (
+              <p className="text-xs text-destructive">
+                {(error as Error)?.message ?? "Accès refusé."}
+              </p>
+            )}
+          </div>
+        )}
         {(pending as any[]).map((row) => (
           <div
             key={row.id}
