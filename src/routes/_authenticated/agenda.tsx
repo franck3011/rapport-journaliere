@@ -53,7 +53,7 @@ function AgendaPage() {
   const deleteFn = useServerFn(deleteAgendaEvent);
 
   const today = new Date();
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState(7);
   const from = isoDay(today);
   const to = isoDay(new Date(today.getTime() + days * 86400000));
 
@@ -121,14 +121,18 @@ function AgendaPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {[30, 60, 90].map((value) => (
+          {[
+            { value: 7, label: "Semaine" },
+            { value: 30, label: "30 j" },
+            { value: 90, label: "90 j" },
+          ].map((preset) => (
             <Button
-              key={value}
+              key={preset.value}
               size="sm"
-              variant={days === value ? "default" : "outline"}
-              onClick={() => setDays(value)}
+              variant={days === preset.value ? "default" : "outline"}
+              onClick={() => setDays(preset.value)}
             >
-              {value} j
+              {preset.label}
             </Button>
           ))}
         </div>
