@@ -16,6 +16,7 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedActionsRouteImport } from './routes/_authenticated/actions'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedAppsRouteImport } from './routes/_authenticated/apps'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
 import { Route as AuthenticatedComplianceRouteImport } from './routes/_authenticated/compliance'
@@ -109,6 +110,11 @@ const AuthenticatedActionsRoute = AuthenticatedActionsRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppsRoute = AuthenticatedAppsRouteImport.update({
@@ -450,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/actions': typeof AuthenticatedActionsRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
   '/apps': typeof AuthenticatedAppsRoute
   '/company': typeof AuthenticatedCompanyRouteWithChildren
   '/compliance': typeof AuthenticatedComplianceRoute
@@ -518,6 +525,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/actions': typeof AuthenticatedActionsRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
   '/apps': typeof AuthenticatedAppsRoute
   '/compliance': typeof AuthenticatedComplianceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -584,6 +592,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/actions': typeof AuthenticatedActionsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/apps': typeof AuthenticatedAppsRoute
   '/_authenticated/company': typeof AuthenticatedCompanyRouteWithChildren
   '/_authenticated/compliance': typeof AuthenticatedComplianceRoute
@@ -654,6 +663,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/actions'
     | '/admin'
+    | '/agenda'
     | '/apps'
     | '/company'
     | '/compliance'
@@ -722,6 +732,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/actions'
     | '/admin'
+    | '/agenda'
     | '/apps'
     | '/compliance'
     | '/dashboard'
@@ -787,6 +798,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/actions'
     | '/_authenticated/admin'
+    | '/_authenticated/agenda'
     | '/_authenticated/apps'
     | '/_authenticated/company'
     | '/_authenticated/compliance'
@@ -916,6 +928,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agenda': {
+      id: '/_authenticated/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/apps': {
@@ -1408,6 +1427,7 @@ const AuthenticatedReportsIdRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActionsRoute: typeof AuthenticatedActionsRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRouteWithChildren
   AuthenticatedComplianceRoute: typeof AuthenticatedComplianceRoute
@@ -1453,6 +1473,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActionsRoute: AuthenticatedActionsRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedAppsRoute: AuthenticatedAppsRoute,
   AuthenticatedCompanyRoute: AuthenticatedCompanyRouteWithChildren,
   AuthenticatedComplianceRoute: AuthenticatedComplianceRoute,

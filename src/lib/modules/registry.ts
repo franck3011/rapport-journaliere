@@ -124,6 +124,17 @@ export const APP_MODULES: AppModule[] = [
     screens: [{ to: "/inventory", label: "Inventaire", icon: Boxes }],
   },
   {
+    code: "agenda",
+    name: "Agenda",
+    description:
+      "Rapports à produire, e-mails à envoyer, réunions et échéances réelles de l'entreprise.",
+    icon: CalendarDays,
+    tone: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    entry: "/agenda",
+    core: false,
+    screens: [{ to: "/agenda", label: "Agenda", icon: CalendarDays }],
+  },
+  {
     code: "planning",
     name: "Planning",
     pinned: true,

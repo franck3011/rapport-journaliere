@@ -14,6 +14,7 @@ export type FeatureCode =
   | "objectifs"
   | "conformite"
   | "inventaire"
+  | "agenda"
   | "messagerie"
   | "export_excel"
   | "roles_audit"
@@ -34,6 +35,7 @@ export const FEATURES: FeatureDefinition[] = [
   { code: "objectifs", label: "Objectifs et indicateurs", enforced: true, module: "objectives" },
   { code: "conformite", label: "Score de conformité", enforced: true, module: "compliance" },
   { code: "inventaire", label: "Inventaire par département", enforced: true, module: "inventory" },
+  { code: "agenda", label: "Agenda et programmations", enforced: true, module: "agenda" },
   { code: "messagerie", label: "Messagerie unifiée", enforced: true, module: "mail" },
   { code: "export_excel", label: "Export Excel / CSV", enforced: true },
   { code: "roles_audit", label: "Rôles et journal d'audit", enforced: true },
