@@ -165,6 +165,14 @@ function ReportsListPage() {
   }, [filtered]);
 
   const currentMonthKey = format(new Date(), "yyyy-MM");
+  const COMBINE_OPEN_KEY = "reports:combineOpen";
+  const [combineOpen, setCombineOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(COMBINE_OPEN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const OPEN_MONTHS_KEY = "reports:openMonths";
   const [openMonths, setOpenMonths] = useState<Set<string>>(
     () => new Set([currentMonthKey]),
@@ -453,13 +461,25 @@ function ReportsListPage() {
 
       {summaries.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 pb-2 border-b border-border flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-foreground">
-            <Layers className="h-4 w-4 text-primary" />
-            Rapports combinés
-            <span className="text-xs font-normal normal-case tracking-normal text-muted-foreground">
-              ({summaries.length})
-            </span>
-          </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !combineOpen;
+                    setCombineOpen(next);
+                    try { localStorage.setItem(COMBINE_OPEN_KEY, next ? "1" : "0"); } catch {}
+                  }}
+                  className="mb-3 pb-2 border-b border-border flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Layers className="h-4 w-4 text-primary" />
+                  Rapports combinés
+                  <span className="text-xs font-normal normal-case tracking-normal">
+                    ({summaries.length})
+                  </span>
+                  <ChevronDown
+                    className={`ml-auto h-4 w-4 transition-transform ${combineOpen ? "" : "-rotate-90"}`}
+                  />
+                </button>
+              {combineOpen && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {summaries.map((r) => (
               <Card key={r.id} className="flex flex-col border-primary/30">
@@ -505,6 +525,7 @@ function ReportsListPage() {
               </Card>
             ))}
           </div>
+              )}
         </section>
       )}
 
