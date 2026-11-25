@@ -1,3 +1,4 @@
+import { compressImageFile } from "@/lib/image-compress";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
@@ -257,11 +258,20 @@ export function AIAssistantPanel({
     try {
       st.to("collect");
       const payload = await Promise.all(
-        files.map(async (f) => ({
-          filename: f.name,
-          mimeType: f.type || (f.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream"),
-          base64: await fileToBase64(f),
-        })),
+        // Une photo de téléphone dépasse la limite de requête (~4,5 Mo) :
+        // on la comprime avant l'encodage base64.
+        files.map(async (f) => {
+          const prepared = await compressImageFile(f);
+          return {
+            filename: prepared.name,
+            mimeType:
+              prepared.type ||
+              (prepared.name.toLowerCase().endsWith(".pdf")
+                ? "application/pdf"
+                : "application/octet-stream"),
+            base64: await fileToBase64(prepared),
+          };
+        }),
       );
       st.to("write");
       const res = await agent({
@@ -432,10 +442,11 @@ export function AIAssistantPanel({
   async function handleImport(file: File) {
     setBusy(true);
     try {
-      const base64 = await fileToBase64(file);
+      const prepared = await compressImageFile(file);
+    const base64 = await fileToBase64(prepared);
       let res: ExtractedReport;
       if (file.type.startsWith("image/")) {
-        res = await extractImg({ data: { base64, mimeType: file.type } });
+        res = await extractImg({ data: { base64, mimeType: prepared.type } });
       } else if (file.name.toLowerCase().endsWith(".docx")) {
         res = await extractDocx({ data: { base64, filename: file.name } });
       } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
