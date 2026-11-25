@@ -333,6 +333,20 @@ export function moduleForPath(pathname: string): AppModule | undefined {
 }
 
 /** Liste des modules visibles pour un jeu de modules activés et un rang de plan. */
+/** Normalise la liste de fonctionnalités, quel que soit son format en base. */
+function toFeatureList(features: unknown): string[] | null {
+  if (Array.isArray(features)) return features.map(String);
+  if (typeof features === "string") {
+    try {
+      const parsed = JSON.parse(features);
+      return Array.isArray(parsed) ? parsed.map(String) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export function visibleModules(
   disabledCodes: string[] | undefined | null,
   features?: string[] | null,
@@ -341,9 +355,10 @@ export function visibleModules(
   return APP_MODULES.filter((m) => {
     if (m.retired) return false;
     if (!m.core && disabled.has(m.code)) return false;
-    if (features != null) {
-      const required = featureForModule(m.code);
-      if (required && !features.includes(required)) return false;
+  const granted = toFeatureList(features);
+  if (granted && granted.length > 0) {
+    const required = featureForModule(m.code);
+    if (required && !granted.includes(required)) return false;
     }
     return true;
   });
