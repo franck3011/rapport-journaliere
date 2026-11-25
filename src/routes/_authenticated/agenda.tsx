@@ -213,9 +213,9 @@ function AgendaPage() {
       )}
 
       {grouped.map(([date, list]) => (
-        <Card key={date}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">
+        <Card key={date} className="py-0">
+          <CardHeader className="py-2">
+            <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground">
               {new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", {
                 weekday: "long",
                 day: "numeric",
@@ -223,11 +223,11 @@ function AgendaPage() {
               })}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1.5 pb-3 pt-0">
             {(list as any[]).map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-md border px-2.5 py-1.5"
               >
                 <div className="flex min-w-0 items-center gap-2">
                   {item.time && (
@@ -244,7 +244,9 @@ function AgendaPage() {
                     {KIND_LABEL[item.kind] ?? item.kind}
                   </span>
                   {item.recurring && (
-                    <RefreshCw className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      récurrent
+                    </span>
                   )}
                 </div>
                 {item.editable && (

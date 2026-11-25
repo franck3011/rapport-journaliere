@@ -80,7 +80,9 @@ export const listAgenda = createServerFn({ method: "GET" })
       .limit(500);
 
     for (const row of (events ?? []) as any[]) {
-      const dates = expand(row.event_date, row.recurrence, data.from, data.to);
+      // Une récurrence n'est affichée qu'une fois : à sa prochaine occurrence.
+      // Déplier chaque jour produisait des dizaines de lignes identiques.
+      const dates = expand(row.event_date, row.recurrence, data.from, data.to).slice(0, 1);
       for (const date of dates) {
         items.push({
           id: `${row.id}-${date}`,
