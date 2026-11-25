@@ -23,7 +23,7 @@ export const listDepartments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }: any): Promise<any[]> => {
     const { data, error } = await context.supabase
-      .from("departments")
+      .from("company_departments")
       .select("id, name, created_at")
       .order("name", { ascending: true });
     if (error) throw new Error(error.message);
@@ -38,7 +38,7 @@ export const createDepartment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }: any): Promise<{ id: string }> => {
     const companyId = await myCompanyId(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
-      .from("departments")
+      .from("company_departments")
       .insert({ company_id: companyId, name: data.name, created_by: context.userId })
       .select("id")
       .single();
@@ -55,7 +55,7 @@ export const deleteDepartment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }: any): Promise<{ ok: true }> => {
-    const { error } = await context.supabase.from("departments").delete().eq("id", data.id);
+    const { error } = await context.supabase.from("company_departments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -15,7 +15,7 @@
 -- ---------------------------------------------------------------------
 -- 1. Départements
 -- ---------------------------------------------------------------------
-create table if not exists public.departments (
+create table if not exists public.company_departments (
   id          uuid primary key default gen_random_uuid(),
   company_id  uuid not null references public.companies(id) on delete cascade,
   name        text not null check (length(trim(name)) > 0),
@@ -24,8 +24,8 @@ create table if not exists public.departments (
 );
 
 -- Un nom de département unique par entreprise, sans tenir compte de la casse.
-create unique index if not exists departments_company_name_idx
-  on public.departments (company_id, lower(trim(name)));
+create unique index if not exists company_departments_name_idx
+  on public.company_departments (company_id, lower(trim(name)));
 
 -- ---------------------------------------------------------------------
 -- 2. Lignes d'inventaire
@@ -33,7 +33,7 @@ create unique index if not exists departments_company_name_idx
 create table if not exists public.inventory_items (
   id            uuid primary key default gen_random_uuid(),
   company_id    uuid not null references public.companies(id) on delete cascade,
-  department_id uuid references public.departments(id) on delete set null,
+  department_id uuid references public.company_departments(id) on delete set null,
 
   name          text not null check (length(trim(name)) > 0),
   category      text not null default '',
@@ -79,28 +79,28 @@ create trigger inventory_items_set_updated_at
 -- ---------------------------------------------------------------------
 -- 3. RLS
 -- ---------------------------------------------------------------------
-alter table public.departments     enable row level security;
+alter table public.company_departments     enable row level security;
 alter table public.inventory_items enable row level security;
 
 -- Départements : lecture et gestion par les membres de l'entreprise.
-drop policy if exists departments_select_member on public.departments;
-create policy departments_select_member on public.departments
+drop policy if exists company_departments_select on public.company_departments;
+create policy company_departments_select on public.company_departments
   for select to authenticated
   using (app_private.compliance_is_member(company_id));
 
-drop policy if exists departments_insert_member on public.departments;
-create policy departments_insert_member on public.departments
+drop policy if exists company_departments_insert on public.company_departments;
+create policy company_departments_insert on public.company_departments
   for insert to authenticated
   with check (app_private.compliance_is_member(company_id));
 
-drop policy if exists departments_update_member on public.departments;
-create policy departments_update_member on public.departments
+drop policy if exists company_departments_update on public.company_departments;
+create policy company_departments_update on public.company_departments
   for update to authenticated
   using (app_private.compliance_is_member(company_id))
   with check (app_private.compliance_is_member(company_id));
 
-drop policy if exists departments_delete_member on public.departments;
-create policy departments_delete_member on public.departments
+drop policy if exists company_departments_delete on public.company_departments;
+create policy company_departments_delete on public.company_departments
   for delete to authenticated
   using (app_private.compliance_is_member(company_id));
 
