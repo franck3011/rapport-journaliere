@@ -1,3 +1,4 @@
+import { activateMyPendingPlan, amIPlatformAdmin } from "@/lib/admin.functions";
 import { formatPrice } from "@/lib/currency";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Check, Sparkles, Clock, Wrench } from "lucide-react";
+import { Package, Check, Sparkles, Clock, Wrench, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/plans")({
@@ -29,6 +30,23 @@ function PlansPage() {
   const plansFn = useServerFn(listPlans);
   const myFn = useServerFn(getMyCompanyPlan);
   const requestFn = useServerFn(requestPlanChange);
+
+  // Un administrateur plateforme peut activer sa propre demande (cas du fondateur).
+  const adminFn = useServerFn(amIPlatformAdmin);
+  const activateFn = useServerFn(activateMyPendingPlan);
+  const qcPlans = useQueryClient();
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["am-i-platform-admin"],
+    queryFn: () => adminFn(),
+  });
+  const activate = useMutation({
+    mutationFn: () => activateFn({ data: {} } as any),
+    onSuccess: async (result: any) => {
+      toast.success(`Formule activée : ${result?.planName ?? ""}`);
+      await qcPlans.invalidateQueries();
+    },
+    onError: (error: any) => toast.error(error?.message ?? "Activation impossible"),
+  });
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
 
   const { data: plans = [], isLoading } = useQuery({
@@ -99,6 +117,19 @@ function PlansPage() {
               <span className="font-semibold">{mine.pendingPlanName}</span> (
               {mine.pendingBillingCycle === "yearly" ? "annuel" : "mensuel"}) en attente
               d'approbation par l'administration.
+            </div>
+            {isAdmin && (
+              <Button
+                size="sm"
+                className="ml-auto shrink-0"
+                disabled={activate.isPending}
+                onClick={() => activate.mutate()}
+              >
+                {activate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Activer la formule
+              </Button>
+            )}
+            <div className="hidden">
             </div>
           </CardContent>
         </Card>

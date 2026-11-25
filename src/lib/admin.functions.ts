@@ -607,3 +607,58 @@ export const activatePendingPlan = createServerFn({ method: "POST" })
 
     return { ok: true, planName: plan?.name ?? "Formule" };
   });
+/** L'appelant est-il administrateur de la plateforme ? */
+export const amIPlatformAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }: any): Promise<boolean> => {
+    return isPlatformAdmin(context.userId);
+  });
+
+/**
+ * Active la formule que l'appelant a lui-même demandée.
+ * Réservé aux administrateurs : le circuit normal passe par le panneau admin,
+ * mais un fondateur qui teste son propre produit ne doit pas créer de facture.
+ */
+export const activateMyPendingPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }: any): Promise<{ ok: true; planName: string }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!(await isPlatformAdmin(context.userId))) {
+      throw new Error("Accès réservé aux administrateurs de la plateforme.");
+    }
+    const admin: any = supabaseAdmin;
+
+    const { data: mem } = await admin
+      .from("company_members")
+      .select("company_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!mem?.company_id) throw new Error("Vous devez appartenir à une entreprise.");
+
+    const { data: company } = await admin
+      .from("companies")
+      .select("pending_plan_id, pending_billing_cycle")
+      .eq("id", mem.company_id)
+      .maybeSingle();
+    if (!company?.pending_plan_id) throw new Error("Aucune formule en attente.");
+
+    const { error } = await admin
+      .from("companies")
+      .update({
+        plan_id: company.pending_plan_id,
+        billing_cycle: company.pending_billing_cycle ?? "monthly",
+        subscription_status: "active",
+        pending_plan_id: null,
+        pending_billing_cycle: null,
+      })
+      .eq("id", mem.company_id);
+    if (error) throw new Error(error.message);
+
+    const { data: plan } = await admin
+      .from("subscription_plans")
+      .select("name")
+      .eq("id", company.pending_plan_id)
+      .maybeSingle();
+
+    return { ok: true, planName: plan?.name ?? "Formule" };
+  });
