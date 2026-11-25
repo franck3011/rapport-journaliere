@@ -37,7 +37,6 @@ import { toast } from "sonner";
 import { CommandPalette } from "@/components/CommandPalette";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { CompanyChatWidget } from "@/components/chat/CompanyChatWidget";
-import { GlobalAssistant } from "@/components/GlobalAssistant";
 import logoDailyBrief from "@/assets/logo-dailybrief.png";
 import { getMyProfile } from "@/lib/reports.functions";
 import { getMyModules } from "@/lib/modules.functions";
@@ -281,7 +280,6 @@ function TopBar({
           <Search className="h-4 w-4" />
         </Button>
         <NotificationsBell collapsed />
-        <GlobalAssistant collapsed />
         <Link
           to="/profile"
           className="rounded-md p-1 hover:bg-accent"
@@ -531,7 +529,6 @@ function SidebarInner({
           )}
         </Link>
         {!adminOnly && <NotificationsBell collapsed={collapsed} />}
-        {!adminOnly && <GlobalAssistant collapsed={collapsed} />}
         {!adminOnly && (
           <Link
             to="/profile"
