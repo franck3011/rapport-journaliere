@@ -67,7 +67,7 @@ export const listInventoryItems = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }: any): Promise<any[]> => {
     let query = context.supabase
-      .from("inventory_items")
+      .from("company_inventory_items")
       .select("id, department_id, name, category, quantity, serial_number, assigned_to, status, notes, updated_at")
       .order("name", { ascending: true })
       .limit(500);
@@ -108,7 +108,7 @@ export const saveInventoryItem = createServerFn({ method: "POST" })
 
     if (data.id) {
       const { error } = await context.supabase
-        .from("inventory_items")
+        .from("company_inventory_items")
         .update(payload)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
@@ -116,7 +116,7 @@ export const saveInventoryItem = createServerFn({ method: "POST" })
     }
 
     const { data: row, error } = await context.supabase
-      .from("inventory_items")
+      .from("company_inventory_items")
       .insert({ ...payload, created_by: context.userId })
       .select("id")
       .single();
@@ -129,7 +129,7 @@ export const deleteInventoryItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }: any): Promise<{ ok: true }> => {
     const { error } = await context.supabase
-      .from("inventory_items")
+      .from("company_inventory_items")
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
