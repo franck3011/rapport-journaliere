@@ -540,7 +540,7 @@ export const listPendingPlanRequests = createServerFn({ method: "GET" })
     const { data: plans } = planIds.length
       ? await admin
           .from("subscription_plans")
-          .select("id, name, price_monthly, price_yearly")
+          .select("*")
           .in("id", planIds)
       : { data: [] as any[] };
 
@@ -554,7 +554,7 @@ export const listPendingPlanRequests = createServerFn({ method: "GET" })
         planId: row.pending_plan_id,
         planName: plan?.name ?? "Formule",
         cycle: row.pending_billing_cycle ?? "monthly",
-        price: plan?.price_monthly ?? plan?.price_yearly ?? null,
+        price: plan?.price_monthly ?? plan?.monthly_price ?? plan?.price ?? plan?.price_yearly ?? plan?.yearly_price ?? null,
         currentPlanId: row.plan_id,
         status: row.subscription_status,
       };
