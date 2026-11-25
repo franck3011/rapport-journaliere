@@ -5,12 +5,12 @@
  * base64 (facteur 1,33), ils dépassent la limite de corps de requête de Vercel
  * (~4,5 Mo) : la requête échoue en « Request Entity Too Large » (413).
  *
- * On redimensionne à 1600 px de côté maximum et on ré-encode en JPEG : une
+ * On redimensionne à 2200 px de côté maximum et on ré-encode en JPEG : une
  * photo de chantier reste parfaitement lisible pour un rapport, mais pèse
  * quelques centaines de kilo-octets.
  */
 
-const MAX_SIDE = 1600;
+const MAX_SIDE = 2200;
 const QUALITY = 0.78;
 
 export async function compressImageFile(

@@ -22,6 +22,7 @@ import {
   FolderOpen,
   Receipt,
   Gauge,
+  Boxes,
   Briefcase,
   Bot,
   Target,
@@ -110,6 +111,17 @@ export const APP_MODULES: AppModule[] = [
     entry: "/compliance",
     core: false,
     screens: [{ to: "/compliance", label: "Conformité", icon: Gauge }],
+  },
+  {
+    code: "inventory",
+    name: "Inventaire",
+    description:
+      "Le matériel de l'entreprise, rangé par département : état, quantité, numéro de série.",
+    icon: Boxes,
+    tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    entry: "/inventory",
+    core: false,
+    screens: [{ to: "/inventory", label: "Inventaire", icon: Boxes }],
   },
   {
     code: "planning",
