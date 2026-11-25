@@ -517,6 +517,27 @@ export const upsertReport = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => reportInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    // Toute image sans légende reçoit la date du rapport : sans cela, les
+    // photos importées par un autre chemin (agent, import) n'avaient aucune
+    // datation, et la preuve terrain disparaissait.
+    {
+      const stampDate = new Date(`${data.report_date}T12:00:00`);
+      const stampText = `📷 ${stampDate.toLocaleDateString("fr-FR")}`;
+      const fill = (list: any[]) =>
+        (list ?? []).map((img) => ({
+          ...img,
+          caption: String(img.caption ?? "").trim() || stampText,
+        }));
+      data = {
+        ...data,
+        images: fill(data.images),
+        sections: (data.sections ?? []).map((section: any) => ({
+          ...section,
+          images: fill(section.images ?? []),
+        })),
+      } as typeof data;
+    }
+
     // Essai terminé : création refusée, lecture toujours permise.
     if (!data.id) {
       const { assertCanWrite } = await import("./subscription.server");
