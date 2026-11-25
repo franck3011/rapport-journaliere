@@ -1,3 +1,4 @@
+import { PendingPlansPanel } from "@/components/admin/PendingPlansPanel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -108,7 +109,10 @@ function AdminPage() {
           <TabsTrigger value="errors"><Bug className="h-4 w-4 mr-1" />Erreurs</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4"><DashboardPanel /></TabsContent>
-        <TabsContent value="companies" className="mt-4"><CompaniesPanel /></TabsContent>
+        <TabsContent value="companies" className="mt-4">
+          <PendingPlansPanel />
+          <CompaniesPanel />
+        </TabsContent>
         <TabsContent value="users" className="mt-4"><UsersPanel /></TabsContent>
         <TabsContent value="plans" className="mt-4"><PlansPanel /></TabsContent>
         <TabsContent value="invoices" className="mt-4"><InvoicesPanel /></TabsContent>

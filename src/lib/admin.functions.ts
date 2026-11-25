@@ -511,3 +511,84 @@ export const listAuditLog = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return (rows ?? []) as AuditRow[];
   });
+
+/* ------------------------------------------------------------------ */
+/* Abonnements : demandes en attente et activation directe            */
+/* ------------------------------------------------------------------ */
+
+export const listPendingPlanRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }: any): Promise<any[]> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!(await isPlatformAdmin(context.userId))) {
+      throw new Error("Accès réservé aux administrateurs de la plateforme.");
+    }
+    const admin: any = supabaseAdmin;
+
+    const { data } = await admin
+      .from("companies")
+      .select(
+        "id, name, pending_plan_id, pending_billing_cycle, plan_id, subscription_status, subscription_plans:subscription_plans!companies_pending_plan_id_fkey(name, price_monthly, price_yearly)",
+      )
+      .not("pending_plan_id", "is", null)
+      .order("name");
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      planId: row.pending_plan_id,
+      planName: row.subscription_plans?.name ?? "Formule",
+      cycle: row.pending_billing_cycle ?? "monthly",
+      price:
+        row.subscription_plans?.price_monthly ?? row.subscription_plans?.price_yearly ?? null,
+      currentPlanId: row.plan_id,
+      status: row.subscription_status,
+    }));
+  });
+
+/**
+ * Active le plan déjà demandé par l'entreprise, sans passer par une facture.
+ * Utile quand le paiement a été encaissé hors application (Mobile Money).
+ */
+export const activatePendingPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ companyId: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }: any): Promise<{ ok: true; planName: string }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!(await isPlatformAdmin(context.userId))) {
+      throw new Error("Accès réservé aux administrateurs de la plateforme.");
+    }
+    const admin: any = supabaseAdmin;
+
+    const { data: company } = await admin
+      .from("companies")
+      .select("pending_plan_id, pending_billing_cycle")
+      .eq("id", data.companyId)
+      .maybeSingle();
+
+    if (!company?.pending_plan_id) {
+      throw new Error("Aucune formule en attente pour cette entreprise.");
+    }
+
+    const { error } = await admin
+      .from("companies")
+      .update({
+        plan_id: company.pending_plan_id,
+        billing_cycle: company.pending_billing_cycle ?? "monthly",
+        subscription_status: "active",
+        pending_plan_id: null,
+        pending_billing_cycle: null,
+      })
+      .eq("id", data.companyId);
+    if (error) throw new Error(error.message);
+
+    const { data: plan } = await admin
+      .from("subscription_plans")
+      .select("name")
+      .eq("id", company.pending_plan_id)
+      .maybeSingle();
+
+    return { ok: true, planName: plan?.name ?? "Formule" };
+  });
