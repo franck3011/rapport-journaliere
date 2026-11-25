@@ -561,7 +561,7 @@ function ReportsListPage() {
                           aria-label="Sélectionner"
                         />
                         <span className="text-xs font-medium text-primary">
-                          {formatLongDate(r.report_date)}
+                  {r.created_at ? `${new Date(r.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · ` : ""}{formatLongDate(r.report_date)}
                         </span>
                       </div>
                       <DropdownMenu>
