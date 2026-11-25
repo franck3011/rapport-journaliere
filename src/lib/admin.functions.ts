@@ -525,25 +525,40 @@ export const listPendingPlanRequests = createServerFn({ method: "GET" })
     }
     const admin: any = supabaseAdmin;
 
-    const { data } = await admin
+    // Pas de jointure nommée : le nom de la contrainte peut varier selon la base,
+    // et une jointure cassée ferait échouer toute la liste.
+    const { data, error } = await admin
       .from("companies")
-      .select(
-        "id, name, pending_plan_id, pending_billing_cycle, plan_id, subscription_status, subscription_plans:subscription_plans!companies_pending_plan_id_fkey(name, price_monthly, price_yearly)",
-      )
+      .select("id, name, pending_plan_id, pending_billing_cycle, plan_id, subscription_status")
       .not("pending_plan_id", "is", null)
       .order("name");
+    if (error) throw new Error(error.message);
 
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      name: row.name,
-      planId: row.pending_plan_id,
-      planName: row.subscription_plans?.name ?? "Formule",
-      cycle: row.pending_billing_cycle ?? "monthly",
-      price:
-        row.subscription_plans?.price_monthly ?? row.subscription_plans?.price_yearly ?? null,
-      currentPlanId: row.plan_id,
-      status: row.subscription_status,
-    }));
+    const planIds = Array.from(
+      new Set((data ?? []).map((row: any) => row.pending_plan_id).filter(Boolean)),
+    );
+    const { data: plans } = planIds.length
+      ? await admin
+          .from("subscription_plans")
+          .select("id, name, price_monthly, price_yearly")
+          .in("id", planIds)
+      : { data: [] as any[] };
+
+    const byId = new Map<string, any>(((plans ?? []) as any[]).map((p) => [p.id, p]));
+
+    return (data ?? []).map((row: any) => {
+      const plan = byId.get(row.pending_plan_id);
+      return {
+        id: row.id,
+        name: row.name,
+        planId: row.pending_plan_id,
+        planName: plan?.name ?? "Formule",
+        cycle: row.pending_billing_cycle ?? "monthly",
+        price: plan?.price_monthly ?? plan?.price_yearly ?? null,
+        currentPlanId: row.plan_id,
+        status: row.subscription_status,
+      };
+    });
   });
 
 /**
