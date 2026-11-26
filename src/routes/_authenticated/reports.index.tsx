@@ -532,32 +532,29 @@ function ReportsListPage() {
       {grouped.map((group) => {
         const isOpen = isSearching || openMonths.has(group.key);
         return (
-        <section key={group.key} className="mb-10">
-          <h2 className="mb-3 pb-2 border-b border-border flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => toggleMonth(group.key)}
-              aria-expanded={isOpen}
-              className="flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform",
-                  !isOpen && "-rotate-90",
-                )}
-              />
-              {group.label}
-              <span className="text-xs font-normal normal-case tracking-normal">
-                ({group.items.length})
-              </span>
-              {!isOpen && (
-                <span className="ml-auto text-xs font-normal normal-case tracking-normal">
-                  Afficher
-                </span>
-              )}
-            </button>
-            <MonthlyReportButton monthKey={group.key} size="sm" variant="ghost" />
-          </h2>
+        <section key={group.key} className="mb-6">
+              <div className="mb-3 flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50">
+                <button
+                  type="button"
+                  onClick={() => toggleMonth(group.key)}
+                  aria-expanded={isOpen}
+                  className="flex flex-1 items-center gap-2.5 text-left"
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                      !isOpen && "-rotate-90",
+                    )}
+                  />
+                  <span className="text-[15px] font-semibold capitalize tracking-tight">
+                    {group.label.toLowerCase()}
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                    {group.items.length}
+                  </span>
+                </button>
+                <MonthlyReportButton monthKey={group.key} size="sm" variant="ghost" />
+              </div>
           {isOpen && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
