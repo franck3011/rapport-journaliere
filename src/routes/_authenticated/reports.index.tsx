@@ -577,7 +577,7 @@ function ReportsListPage() {
                           onCheckedChange={() => toggle(r.id)}
                           aria-label="Sélectionner"
                         />
-                        <span className="text-xs font-medium text-primary">
+                        <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
                   {r.created_at ? `${new Date(r.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · ` : ""}{formatLongDate(r.report_date)}
                         </span>
                       </div>
@@ -636,20 +636,26 @@ function ReportsListPage() {
                     <Link
                       to="/reports/$id"
                       params={{ id: r.id }}
-                      className="text-lg font-semibold leading-snug hover:text-primary transition-colors line-clamp-2"
+                      className="text-[15px] font-semibold leading-snug hover:text-primary transition-colors line-clamp-2"
                     >
                       {r.title}
                     </Link>
                     {r.intro && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-2 flex-1">
+                      <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-muted-foreground line-clamp-2">
                         {r.intro}
                       </p>
                     )}
-                    <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
-                      <div>
-                        Par <span className="font-medium text-foreground">{r.author_name}</span>
-                      </div>
-                    </div>
+                  <div className="mt-3 flex items-center gap-2 border-t border-border pt-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold uppercase text-muted-foreground">
+                      {String(r.author_name ?? "?").trim().charAt(0) || "?"}
+                    </span>
+                    <span className="truncate text-[11px] text-muted-foreground">{r.author_name}</span>
+                    {(r as any).status && (
+                      <span className="ml-auto shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {String((r as any).status)}
+                      </span>
+                    )}
+                  </div>
                   </CardContent>
                 </Card>
               );
