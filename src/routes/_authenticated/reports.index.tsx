@@ -173,18 +173,17 @@ function ReportsListPage() {
       return false;
     }
   });
-  const OPEN_MONTHS_KEY = "reports:openMonths";
-  const [openMonths, setOpenMonths] = useState<Set<string>>(
-    () => new Set([currentMonthKey]),
-  );
+  // On memorise les mois FERMES : par defaut, tout est ouvert.
+  const CLOSED_MONTHS_KEY = "reports:closedMonths";
+  const [closedMonths, setClosedMonths] = useState<Set<string>>(() => new Set());
   const [monthsRestored, setMonthsRestored] = useState(false);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(OPEN_MONTHS_KEY);
+        const raw = localStorage.getItem(CLOSED_MONTHS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setOpenMonths(new Set(parsed.filter((k) => typeof k === "string")));
+          if (Array.isArray(parsed)) setClosedMonths(new Set(parsed.filter((k) => typeof k === "string")));
       }
     } catch {
       // préférence illisible : on garde le mois en cours ouvert
@@ -195,15 +194,15 @@ function ReportsListPage() {
   useEffect(() => {
     if (!monthsRestored) return;
     try {
-      localStorage.setItem(OPEN_MONTHS_KEY, JSON.stringify(Array.from(openMonths)));
+      localStorage.setItem(CLOSED_MONTHS_KEY, JSON.stringify(Array.from(closedMonths)));
     } catch {
       // stockage indisponible : la préférence n'est pas persistée
     }
-  }, [openMonths, monthsRestored]);
+  }, [closedMonths, monthsRestored]);
   const isSearching = search.trim().length > 0;
 
   function toggleMonth(key: string) {
-    setOpenMonths((prev) => {
+    setClosedMonths((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -530,7 +529,7 @@ function ReportsListPage() {
       )}
 
       {grouped.map((group) => {
-        const isOpen = isSearching || openMonths.has(group.key);
+        const isOpen = isSearching || !closedMonths.has(group.key);
         return (
         <section key={group.key} className="mb-6">
               <div className="mb-3 flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50">
