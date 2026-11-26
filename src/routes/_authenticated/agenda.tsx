@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -253,6 +254,16 @@ function AgendaPage() {
                     </span>
                   )}
                 </div>
+                {item.kind === "rapport" && (
+                  <Button asChild size="sm" variant="outline" className="ml-auto shrink-0">
+                    <Link
+                      to="/reports/new"
+                      search={{ titre: item.title, date: item.date }}
+                    >
+                      Créer le rapport
+                    </Link>
+                  </Button>
+                )}
                 {item.editable && (
                   <Button
                     size="sm"

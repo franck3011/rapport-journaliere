@@ -4,8 +4,10 @@ import { BudgetForm } from "@/components/budget/BudgetForm";
 import type { DocType } from "@/lib/budget";
 
 export const Route = createFileRoute("/_authenticated/reports/new")({
-  validateSearch: (search: Record<string, unknown>): { type?: DocType } => ({
+  validateSearch: (search: Record<string, unknown>): { type?: DocType; titre?: string; date?: string } => ({
     type: typeof search.type === "string" ? (search.type as DocType) : undefined,
+  titre: typeof search.titre === "string" ? search.titre : undefined,
+  date: typeof search.date === "string" ? search.date : undefined,
   }),
 
   head: () => ({
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/reports/new")({
 });
 
 function NewDocumentPage() {
-  const { type } = useSearch({ from: "/_authenticated/reports/new" });
+  const { type, titre, date } = useSearch({ from: "/_authenticated/reports/new" });
   if (type === "budget") return <BudgetForm />;
-  return <ReportForm />;
+  return <ReportForm prefillTitle={titre} prefillDate={date} />;
 }

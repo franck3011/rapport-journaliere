@@ -144,7 +144,16 @@ function emptyForm(): FormState {
   };
 }
 
-export function ReportForm({ initial }: { initial?: LoadedReport }) {
+export function ReportForm({
+  initial,
+  prefillTitle,
+  prefillDate,
+}: {
+  initial?: LoadedReport;
+  /** intitulé pré-rempli quand on crée depuis l'agenda */
+  prefillTitle?: string;
+  prefillDate?: string;
+}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const upsert = useServerFn(upsertReport);
