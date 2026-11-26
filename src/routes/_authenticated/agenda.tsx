@@ -248,17 +248,22 @@ function AgendaPage() {
                   >
                     {KIND_LABEL[item.kind] ?? item.kind}
                   </span>
+                  {item.done && (
+                    <span className="shrink-0 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                      traité
+                    </span>
+                  )}
                   {item.recurring && (
                     <span className="shrink-0 text-[10px] text-muted-foreground">
                       récurrent
                     </span>
                   )}
                 </div>
-                {item.kind === "rapport" && (
+                {item.kind === "rapport" && !item.done && (
                   <Button asChild size="sm" variant="outline" className="ml-auto shrink-0">
                     <Link
                       to="/reports/new"
-                      search={{ titre: item.title, date: item.date }}
+                      search={{ titre: item.title, date: item.date, event: item.refId }}
                     >
                       Créer le rapport
                     </Link>

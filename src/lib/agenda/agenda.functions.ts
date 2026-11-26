@@ -21,6 +21,8 @@ export type AgendaItem = {
   recurring?: boolean;
   /** identifiant reel en base, pour la suppression */
   refId?: string;
+  /** vrai si un rapport a deja ete produit depuis cette echeance */
+  done?: boolean;
   editable: boolean;
 };
 
@@ -77,7 +79,7 @@ export const listAgenda = createServerFn({ method: "GET" })
     // 1. Événements manuels (avec récurrence)
     const { data: events } = await supabase
       .from("company_agenda_events")
-      .select("id, title, kind, event_date, event_time, recurrence, notes")
+      .select("id, title, kind, event_date, event_time, recurrence, notes, report_id")
       .eq("company_id", companyId)
       .limit(500);
 
@@ -96,6 +98,7 @@ export const listAgenda = createServerFn({ method: "GET" })
           recurring: row.recurrence !== "none",
           editable: true,
           refId: row.id,
+          done: Boolean(row.report_id),
         });
       }
     }
@@ -248,5 +251,24 @@ export const deleteAgendaEvent = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Relie une échéance au rapport qu'elle a produit.
+ * Appelée après l'enregistrement d'un rapport créé depuis l'agenda.
+ */
+export const linkAgendaEventToReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ eventId: z.string().uuid(), reportId: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }: any): Promise<{ ok: true }> => {
+    const { error } = await context.supabase
+      .from("company_agenda_events")
+      .update({ report_id: data.reportId })
+      .eq("id", data.eventId);
+    // Si la colonne n'existe pas encore, on n'empêche pas l'enregistrement.
+    if (error) return { ok: true };
     return { ok: true };
   });

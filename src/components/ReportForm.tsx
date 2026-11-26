@@ -148,11 +148,14 @@ export function ReportForm({
   initial,
   prefillTitle,
   prefillDate,
+  prefillEventId,
 }: {
   initial?: LoadedReport;
   /** intitulé pré-rempli quand on crée depuis l'agenda */
   prefillTitle?: string;
   prefillDate?: string;
+  /** échéance d'agenda à marquer comme traitée après enregistrement */
+  prefillEventId?: string;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -312,7 +315,16 @@ export function ReportForm({
       pendingPayload = payload;
       return upsert({ data: payload });
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
+      // Échéance d'agenda à l'origine : on la marque comme traitée.
+      if (prefillEventId) {
+        try {
+          const { linkAgendaEventToReport } = await import("@/lib/agenda/agenda.functions");
+          await linkAgendaEventToReport({ data: { eventId: prefillEventId, reportId: res.id } });
+        } catch {
+          // sans liaison, le rapport reste créé
+        }
+      }
       toast.success(form.id ? "Rapport mis à jour" : "Rapport créé");
       queryClient.invalidateQueries({ queryKey: ["reports"] });
       queryClient.invalidateQueries({ queryKey: ["report", res.id] });
