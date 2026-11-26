@@ -1,3 +1,4 @@
+import { downloadAgendaIcs } from "@/lib/agenda/ics";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -7,7 +8,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Loader2, Plus, Trash2, RefreshCw } from "lucide-react";
+import { CalendarDays, Download, Loader2, Plus, Trash2, RefreshCw } from "lucide-react";
 import {
   createAgendaEvent,
   deleteAgendaEvent,
@@ -121,7 +122,16 @@ function AgendaPage() {
             Les rapports à produire, les e-mails à envoyer, les échéances réelles de l'entreprise.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={items.length === 0}
+            onClick={() => downloadAgendaIcs(items as any[], from, to)}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Calendrier
+          </Button>
           {[
             { value: 7, label: "Semaine" },
             { value: 30, label: "30 j" },
