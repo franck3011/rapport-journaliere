@@ -528,143 +528,125 @@ function ReportsListPage() {
         </section>
       )}
 
-      {grouped.map((group) => {
-        const isOpen = isSearching || !closedMonths.has(group.key);
-        return (
-        <section key={group.key} className="mb-6">
-              <div className="mb-3 flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50">
-                <button
-                  type="button"
-                  onClick={() => toggleMonth(group.key)}
-                  aria-expanded={isOpen}
-                  className="flex flex-1 items-center gap-2.5 text-left"
-                >
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                      !isOpen && "-rotate-90",
-                    )}
-                  />
-                  <span className="text-[15px] font-semibold capitalize tracking-tight">
-                    {group.label.toLowerCase()}
-                  </span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
-                    {group.items.length}
-                  </span>
-                </button>
-                <MonthlyReportButton monthKey={group.key} size="sm" variant="ghost" />
-              </div>
-          {isOpen && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-
-            {group.items.map((r) => {
-              const isMine = r.author_id === user.id;
-              const isSel = selected.has(r.id);
-              return (
-                <Card
-                  key={r.id}
-                  className={cn(
-                    "group transition-shadow hover:shadow-md relative flex flex-col",
-                    isSel && "ring-2 ring-primary",
-                  )}
-                >
-                  <CardContent className="p-5 flex flex-col flex-1">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={isSel}
-                          onCheckedChange={() => toggle(r.id)}
-                          aria-label="Sélectionner"
-                        />
-                        <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
-                  {r.created_at ? `${new Date(r.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · ` : ""}{formatLongDate(r.report_date)}
-                        </span>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Actions sur le rapport">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              navigate({
-                                to: "/reports/$id",
-                                params: { id: r.id },
-                              })
-                            }
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Voir
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDownloadOne(r.id)}>
-                            <Download className="h-4 w-4 mr-2" />
-                            Télécharger PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShareOne(r.id)}>
-                            <Share2 className="h-4 w-4 mr-2" />
-                            Partager
-                          </DropdownMenuItem>
-                          {isMine && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  navigate({
-                                    to: "/reports/$id/edit",
-                                    params: { id: r.id },
-                                  })
-                                }
-                              >
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Modifier
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => setToDelete(r.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            </>
+          {filtered.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              Aucun rapport ne correspond à ces filtres.
+            </p>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="w-10 px-3 py-2.5" />
+                      <th className="px-3 py-2.5 text-left font-semibold">Date</th>
+                      <th className="px-3 py-2.5 text-left font-semibold">Titre</th>
+                      <th className="px-3 py-2.5 text-left font-semibold">Auteur</th>
+                      <th className="px-3 py-2.5 text-left font-semibold">État</th>
+                      <th className="w-12 px-3 py-2.5" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((r) => {
+                      const isMine = r.author_id === user.id;
+                      const isSel = selected.has(r.id);
+                      return (
+                        <tr
+                          key={r.id}
+                          className={cn(
+                            "border-t border-border transition-colors hover:bg-muted/40",
+                            isSel && "bg-primary/5",
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <Link
-                      to="/reports/$id"
-                      params={{ id: r.id }}
-                      className="text-[15px] font-semibold leading-snug hover:text-primary transition-colors line-clamp-2"
-                    >
-                      {r.title}
-                    </Link>
-                    {r.intro && (
-                      <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-muted-foreground line-clamp-2">
-                        {r.intro}
-                      </p>
-                    )}
-                  <div className="mt-3 flex items-center gap-2 border-t border-border pt-2.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold uppercase text-muted-foreground">
-                      {String(r.author_name ?? "?").trim().charAt(0) || "?"}
-                    </span>
-                    <span className="truncate text-[11px] text-muted-foreground">{r.author_name}</span>
-                    {(r as any).status && (
-                      <span className="ml-auto shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        {String((r as any).status)}
-                      </span>
-                    )}
-                  </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                        >
+                          <td className="px-3 py-2">
+                            <Checkbox
+                              checked={isSel}
+                              onCheckedChange={() => toggle(r.id)}
+                              aria-label="Sélectionner"
+                            />
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-xs tabular-nums text-muted-foreground">
+                            {r.created_at
+                              ? `${new Date(r.created_at).toLocaleTimeString("fr-FR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })} · `
+                              : ""}
+                            {formatLongDate(r.report_date)}
+                          </td>
+                          <td className="max-w-[420px] px-3 py-2">
+                            <Link
+                              to="/reports/$id"
+                              params={{ id: r.id }}
+                              className="block truncate font-medium transition-colors hover:text-primary"
+                            >
+                              {r.title}
+                            </Link>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
+                            {r.author_name}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                            {String((r as any).status ?? "")}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  aria-label="Actions sur le rapport"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => navigate({ to: "/reports/$id", params: { id: r.id } })}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Voir
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadOne(r.id)}>
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Télécharger PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleShareOne(r.id)}>
+                                  <Share2 className="mr-2 h-4 w-4" />
+                                  Partager
+                                </DropdownMenuItem>
+                                {isMine && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        navigate({ to: "/reports/$id/edit", params: { id: r.id } })
+                                      }
+                                    >
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Modifier
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => setToDelete(r.id)}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Supprimer
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
-        </section>
-        );
-      })}
 
 
 
