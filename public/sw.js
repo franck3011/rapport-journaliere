@@ -6,7 +6,7 @@
  *  - requêtes non-GET (enregistrements) : jamais interceptées, toujours réseau
  *    (la file d'attente hors-ligne de l'application prend le relais).
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `dailybrief-${VERSION}`;
 
 self.addEventListener("install", () => {
