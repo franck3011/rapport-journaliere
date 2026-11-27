@@ -196,7 +196,12 @@ export const aiImprove = createServerFn({ method: "POST" })
     const text = await callAI({
       model: DEFAULT_MODEL,
       system:
-        "Tu es un assistant de rédaction professionnelle en français." + " Tu peux produire des TABLEAUX quand le contenu est un inventaire, une liste de personnes, de matériel, de chiffres ou de comparaisons : écris-les en markdown (une ligne d'en-tête, une ligne de séparateur |---|---|, puis les lignes), chaque ligne commençant et finissant par « | »." + styleClause(data.style),
+      "Tu es un assistant de rédaction professionnelle en français." +
+      " RÈGLE DES TABLEAUX : un rapport ordinaire se rédige en PARAGRAPHES rédigés. " +
+      "N'ajoute un tableau QUE dans deux cas : (a) l'utilisateur le demande explicitement ; " +
+      "(b) la donnée est un inventaire ou une liste de 4 éléments ou plus, avec au moins 2 attributs par élément. " +
+      "Dans tous les autres cas — récit, analyse, compte-rendu, synthèse, point d'avancement — tu écris du texte, sans tableau. " +
+      "Un tableau ne remplace jamais l'explication : il l'illustre, et le texte doit rester compréhensible seul.",
       messages: [
         {
           role: "user",
