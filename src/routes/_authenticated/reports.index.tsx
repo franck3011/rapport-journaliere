@@ -461,23 +461,7 @@ function ReportsListPage() {
         </Card>
       )}
 
-      {!isSearching && grouped.length > visibleMonths && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-          <span className="text-xs text-muted-foreground">
-            {visibleMonths} mois affiché{visibleMonths > 1 ? "s" : ""} sur {grouped.length}
-          </span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => setVisibleMonths((v) => v + 2)}>
-              Afficher plus
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setVisibleMonths(grouped.length)}>
-              Tout afficher
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {summaries.length > 0 && (
+            {summaries.length > 0 && (
         <section className="mb-10">
                 <button
                   type="button"
