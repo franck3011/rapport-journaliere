@@ -651,6 +651,7 @@ function ReportsListPage() {
         </section>
         );
 
+      })}
           {!isSearching && visibleMonths < grouped.length && (
             <div className="mt-2 mb-8 flex justify-center">
               <Button
@@ -661,7 +662,6 @@ function ReportsListPage() {
               </Button>
             </div>
           )}
-      })}
 
 
 
