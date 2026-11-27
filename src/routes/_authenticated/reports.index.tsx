@@ -173,17 +173,18 @@ function ReportsListPage() {
       return false;
     }
   });
-  // On memorise les mois FERMES : par defaut, tout est ouvert.
-  const CLOSED_MONTHS_KEY = "reports:closedMonths";
-  const [closedMonths, setClosedMonths] = useState<Set<string>>(() => new Set());
+  const OPEN_MONTHS_KEY = "reports:openMonths";
+  const [openMonths, setOpenMonths] = useState<Set<string>>(
+    () => new Set([currentMonthKey]),
+  );
   const [monthsRestored, setMonthsRestored] = useState(false);
 
   useEffect(() => {
     try {
-        const raw = localStorage.getItem(CLOSED_MONTHS_KEY);
+      const raw = localStorage.getItem(OPEN_MONTHS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setClosedMonths(new Set(parsed.filter((k) => typeof k === "string")));
+        if (Array.isArray(parsed)) setOpenMonths(new Set(parsed.filter((k) => typeof k === "string")));
       }
     } catch {
       // préférence illisible : on garde le mois en cours ouvert
@@ -194,15 +195,15 @@ function ReportsListPage() {
   useEffect(() => {
     if (!monthsRestored) return;
     try {
-      localStorage.setItem(CLOSED_MONTHS_KEY, JSON.stringify(Array.from(closedMonths)));
+      localStorage.setItem(OPEN_MONTHS_KEY, JSON.stringify(Array.from(openMonths)));
     } catch {
       // stockage indisponible : la préférence n'est pas persistée
     }
-  }, [closedMonths, monthsRestored]);
+  }, [openMonths, monthsRestored]);
   const isSearching = search.trim().length > 0;
 
   function toggleMonth(key: string) {
-    setClosedMonths((prev) => {
+    setOpenMonths((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -528,125 +529,140 @@ function ReportsListPage() {
         </section>
       )}
 
-          {filtered.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              Aucun rapport ne correspond à ces filtres.
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-lg border border-border">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="w-10 px-3 py-2.5" />
-                      <th className="px-3 py-2.5 text-left font-semibold">Date</th>
-                      <th className="px-3 py-2.5 text-left font-semibold">Titre</th>
-                      <th className="px-3 py-2.5 text-left font-semibold">Auteur</th>
-                      <th className="px-3 py-2.5 text-left font-semibold">État</th>
-                      <th className="w-12 px-3 py-2.5" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((r) => {
-                      const isMine = r.author_id === user.id;
-                      const isSel = selected.has(r.id);
-                      return (
-                        <tr
-                          key={r.id}
-                          className={cn(
-                            "border-t border-border transition-colors hover:bg-muted/40",
-                            isSel && "bg-primary/5",
+      {grouped.map((group) => {
+        const isOpen = isSearching || openMonths.has(group.key);
+        return (
+        <section key={group.key} className="mb-10">
+          <h2 className="mb-3 pb-2 border-b border-border flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleMonth(group.key)}
+              aria-expanded={isOpen}
+              className="flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  !isOpen && "-rotate-90",
+                )}
+              />
+              {group.label}
+              <span className="text-xs font-normal normal-case tracking-normal">
+                ({group.items.length})
+              </span>
+              {!isOpen && (
+                <span className="ml-auto text-xs font-normal normal-case tracking-normal">
+                  Afficher
+                </span>
+              )}
+            </button>
+            <MonthlyReportButton monthKey={group.key} size="sm" variant="ghost" />
+          </h2>
+          {isOpen && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+
+            {group.items.map((r) => {
+              const isMine = r.author_id === user.id;
+              const isSel = selected.has(r.id);
+              return (
+                <Card
+                  key={r.id}
+                  className={cn(
+                    "group transition-shadow hover:shadow-md relative flex flex-col",
+                    isSel && "ring-2 ring-primary",
+                  )}
+                >
+                  <CardContent className="p-5 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={isSel}
+                          onCheckedChange={() => toggle(r.id)}
+                          aria-label="Sélectionner"
+                        />
+                        <span className="text-xs font-medium text-primary">
+                  {r.created_at ? `${new Date(r.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · ` : ""}{formatLongDate(r.report_date)}
+                        </span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Actions sur le rapport">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              navigate({
+                                to: "/reports/$id",
+                                params: { id: r.id },
+                              })
+                            }
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Voir
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDownloadOne(r.id)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Télécharger PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShareOne(r.id)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Partager
+                          </DropdownMenuItem>
+                          {isMine && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate({
+                                    to: "/reports/$id/edit",
+                                    params: { id: r.id },
+                                  })
+                                }
+                              >
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setToDelete(r.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </>
                           )}
-                        >
-                          <td className="px-3 py-2">
-                            <Checkbox
-                              checked={isSel}
-                              onCheckedChange={() => toggle(r.id)}
-                              aria-label="Sélectionner"
-                            />
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-xs tabular-nums text-muted-foreground">
-                            {r.created_at
-                              ? `${new Date(r.created_at).toLocaleTimeString("fr-FR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })} · `
-                              : ""}
-                            {formatLongDate(r.report_date)}
-                          </td>
-                          <td className="max-w-[420px] px-3 py-2">
-                            <Link
-                              to="/reports/$id"
-                              params={{ id: r.id }}
-                              className="block truncate font-medium transition-colors hover:text-primary"
-                            >
-                              {r.title}
-                            </Link>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
-                            {r.author_name}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                            {String((r as any).status ?? "")}
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  aria-label="Actions sur le rapport"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => navigate({ to: "/reports/$id", params: { id: r.id } })}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Voir
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDownloadOne(r.id)}>
-                                  <Download className="mr-2 h-4 w-4" />
-                                  Télécharger PDF
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleShareOne(r.id)}>
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                  Partager
-                                </DropdownMenuItem>
-                                {isMine && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        navigate({ to: "/reports/$id/edit", params: { id: r.id } })
-                                      }
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Modifier
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={() => setToDelete(r.id)}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Supprimer
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <Link
+                      to="/reports/$id"
+                      params={{ id: r.id }}
+                      className="text-lg font-semibold leading-snug hover:text-primary transition-colors line-clamp-2"
+                    >
+                      {r.title}
+                    </Link>
+                    {r.intro && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-2 flex-1">
+                        {r.intro}
+                      </p>
+                    )}
+                    <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
+                      <div>
+                        Par <span className="font-medium text-foreground">{r.author_name}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             </div>
           )}
+        </section>
+        );
+      })}
 
 
 
