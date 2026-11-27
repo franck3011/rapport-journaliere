@@ -530,34 +530,20 @@ function ReportsListPage() {
       )}
 
       {grouped.map((group) => {
-        const isOpen = isSearching || openMonths.has(group.key);
+        const isOpen = true; // mois toujours déplié : les cartes sont visibles d'emblée
         return (
         <section key={group.key} className="mb-10">
-          <h2 className="mb-3 pb-2 border-b border-border flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => toggleMonth(group.key)}
-              aria-expanded={isOpen}
-              className="flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform",
-                  !isOpen && "-rotate-90",
-                )}
-              />
-              {group.label}
-              <span className="text-xs font-normal normal-case tracking-normal">
-                ({group.items.length})
+            <div className="mb-3 flex items-center gap-2 border-b border-border/60 pb-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
               </span>
-              {!isOpen && (
-                <span className="ml-auto text-xs font-normal normal-case tracking-normal">
-                  Afficher
-                </span>
-              )}
-            </button>
-            <MonthlyReportButton monthKey={group.key} size="sm" variant="ghost" />
-          </h2>
+              <span className="text-[11px] tabular-nums text-muted-foreground/60">
+                {group.items.length}
+              </span>
+              <div className="ml-auto">
+                <MonthlyReportButton monthKey={group.key} size="sm" variant="ghost" />
+              </div>
+            </div>
           {isOpen && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
