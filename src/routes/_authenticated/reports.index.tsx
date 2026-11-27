@@ -201,6 +201,8 @@ function ReportsListPage() {
     }
   }, [openMonths, monthsRestored]);
   const isSearching = search.trim().length > 0;
+  // Chargement progressif : un mois à la fois, pour éviter un défilement sans fin.
+  const [visibleMonths, setVisibleMonths] = useState(1);
 
   function toggleMonth(key: string) {
     setOpenMonths((prev) => {
@@ -529,7 +531,7 @@ function ReportsListPage() {
         </section>
       )}
 
-      {grouped.map((group) => {
+          {grouped.slice(0, isSearching ? grouped.length : visibleMonths).map((group) => {
         const isOpen = true; // mois toujours déplié : les cartes sont visibles d'emblée
         return (
         <section key={group.key} className="mb-10">
@@ -644,6 +646,16 @@ function ReportsListPage() {
                 </Card>
               );
             })}
+          {!isSearching && visibleMonths < grouped.length && (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setVisibleMonths((v) => v + 2)}
+              >
+                Afficher les mois précédents ({grouped.length - visibleMonths})
+              </Button>
+            </div>
+          )}
             </div>
           )}
         </section>
