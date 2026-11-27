@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ShieldCheck,
   Layers,
+  ChevronUp,
   Loader2,
   FileDown,
 
@@ -203,6 +204,14 @@ function ReportsListPage() {
   const isSearching = search.trim().length > 0;
   // Chargement progressif : un mois à la fois, pour éviter un défilement sans fin.
   const [visibleMonths, setVisibleMonths] = useState(1);
+  // Affiché quand la page est défilée : permet de remonter d'un geste.
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 600);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   function toggleMonth(key: string) {
     setOpenMonths((prev) => {
@@ -461,6 +470,15 @@ function ReportsListPage() {
         </Card>
       )}
 
+      {!isSearching && visibleMonths > 1 && (
+        <div className="mb-2 flex items-center justify-end">
+          <Button size="sm" variant="ghost" onClick={() => setVisibleMonths(1)}>
+            <ChevronUp className="mr-1.5 h-4 w-4" />
+            Réduire à un mois
+          </Button>
+        </div>
+      )}
+
             {summaries.length > 0 && (
         <section className="mb-10">
                 <button
@@ -665,6 +683,16 @@ function ReportsListPage() {
 
 
 
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Remonter en haut"
+          className="fixed bottom-24 right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background shadow-lg transition-transform hover:scale-105 md:bottom-6"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </button>
+      )}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
